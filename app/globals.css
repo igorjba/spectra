@@ -1,0 +1,314 @@
+@import "tailwindcss";
+
+/*
+  Spectra design system.
+  Semantic tokens live as CSS variables so themes swap at runtime; the @theme
+  inline block re-exports them to Tailwind utilities (bg-background, text-muted,
+  font-display, …). Dark is the base theme; [data-theme="light"] overrides it.
+*/
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.145 0.012 274);
+  --background-subtle: oklch(0.172 0.014 274);
+  --surface: oklch(0.188 0.015 274);
+  --card: oklch(0.185 0.015 274);
+  --elevated: oklch(0.216 0.016 274);
+  --overlay: oklch(0.11 0.01 274 / 0.72);
+
+  --foreground: oklch(0.97 0.006 274);
+  --muted: oklch(0.262 0.015 274);
+  --muted-foreground: oklch(0.705 0.02 274);
+  --faint: oklch(0.5 0.018 274);
+
+  --border: oklch(0.98 0 0 / 0.09);
+  --border-strong: oklch(0.98 0 0 / 0.17);
+  --input: oklch(0.98 0 0 / 0.12);
+
+  --accent: oklch(0.7 0.168 286);
+  --accent-hover: oklch(0.75 0.16 286);
+  --accent-foreground: oklch(0.145 0.012 274);
+  --accent-muted: oklch(0.7 0.168 286 / 0.14);
+  --ring: oklch(0.7 0.168 286);
+
+  --success: oklch(0.74 0.17 158);
+  --warning: oklch(0.8 0.15 85);
+  --danger: oklch(0.66 0.2 22);
+
+  /* Brand spectrum — a full hue arc for generative gradients and accents. */
+  --spectra-1: oklch(0.72 0.19 25);
+  --spectra-2: oklch(0.82 0.16 92);
+  --spectra-3: oklch(0.78 0.17 158);
+  --spectra-4: oklch(0.72 0.15 232);
+  --spectra-5: oklch(0.68 0.19 300);
+
+  --shadow-color: 274 40% 3%;
+  --shadow-sm: 0 1px 2px 0 hsl(var(--shadow-color) / 0.5);
+  --shadow: 0 4px 24px -6px hsl(var(--shadow-color) / 0.6);
+  --shadow-lg: 0 24px 64px -12px hsl(var(--shadow-color) / 0.7);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: oklch(0.992 0.003 274);
+  --background-subtle: oklch(0.972 0.005 274);
+  --surface: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --elevated: oklch(1 0 0);
+  --overlay: oklch(0.145 0.01 274 / 0.4);
+
+  --foreground: oklch(0.19 0.014 274);
+  --muted: oklch(0.945 0.006 274);
+  --muted-foreground: oklch(0.46 0.016 274);
+  --faint: oklch(0.62 0.018 274);
+
+  --border: oklch(0.19 0.014 274 / 0.1);
+  --border-strong: oklch(0.19 0.014 274 / 0.2);
+  --input: oklch(0.19 0.014 274 / 0.14);
+
+  --accent: oklch(0.53 0.2 286);
+  --accent-hover: oklch(0.48 0.21 286);
+  --accent-foreground: oklch(0.99 0.003 274);
+  --accent-muted: oklch(0.53 0.2 286 / 0.1);
+  --ring: oklch(0.53 0.2 286);
+
+  --success: oklch(0.56 0.16 158);
+  --warning: oklch(0.68 0.15 75);
+  --danger: oklch(0.58 0.22 25);
+
+  --spectra-1: oklch(0.62 0.21 25);
+  --spectra-2: oklch(0.74 0.16 78);
+  --spectra-3: oklch(0.66 0.17 158);
+  --spectra-4: oklch(0.6 0.17 250);
+  --spectra-5: oklch(0.56 0.21 300);
+
+  --shadow-color: 274 30% 40%;
+  --shadow-sm: 0 1px 2px 0 hsl(var(--shadow-color) / 0.12);
+  --shadow: 0 4px 24px -6px hsl(var(--shadow-color) / 0.16);
+  --shadow-lg: 0 24px 64px -12px hsl(var(--shadow-color) / 0.2);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-subtle: var(--background-subtle);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-overlay: var(--overlay);
+
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-muted: var(--accent-muted);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-spectra-1: var(--spectra-1);
+  --color-spectra-2: var(--spectra-2);
+  --color-spectra-3: var(--spectra-3);
+  --color-spectra-4: var(--spectra-4);
+  --color-spectra-5: var(--spectra-5);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Fluid display scale — tracks viewport between a floor and a ceiling. */
+  --text-mega: clamp(3.5rem, 1rem + 11vw, 11rem);
+  --text-mega--line-height: 0.9;
+  --text-mega--letter-spacing: -0.04em;
+  --text-hero: clamp(2.5rem, 1rem + 6.4vw, 6rem);
+  --text-hero--line-height: 0.98;
+  --text-hero--letter-spacing: -0.03em;
+  --text-display: clamp(2rem, 1.2rem + 3.4vw, 3.5rem);
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.025em;
+  --text-title: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  --text-title--line-height: 1.12;
+  --text-title--letter-spacing: -0.02em;
+
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --animate-fade-up: fade-up 0.7s var(--ease-out-expo) both;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-marquee: marquee 38s linear infinite;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Only paint focus rings from keyboard, never from pointer. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--faint);
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Frosted hairline card used across institutional surfaces. */
+  .surface-card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+}
+
+@utility text-gradient {
+  background: linear-gradient(
+    100deg,
+    var(--spectra-4),
+    var(--spectra-5),
+    var(--spectra-1)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility grid-lines {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Fine film grain masks banding on dark gradients; pointer-transparent. */
+@utility grain {
+  position: relative;
+}
+@utility grain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.75rem);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
