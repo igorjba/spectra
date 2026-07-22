@@ -79,9 +79,11 @@ export function useTheme() {
 }
 
 /**
- * Inline script that resolves the theme before first paint to avoid a flash of
- * the wrong theme. Stored choice wins; otherwise the OS preference is honored.
+ * Script inline que resolve o tema antes da primeira pintura, evitando o flash
+ * do tema errado. A escolha salva sempre vence; sem escolha, o padrão é escuro
+ * — é o tema base do design system e o que os shaders assumem. Quem prefere
+ * claro troca no cabeçalho e a preferência persiste.
  */
 export const themeInitScript = `(function(){try{var k=${JSON.stringify(
   THEME_STORAGE_KEY,
-)};var s=localStorage.getItem(k);var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");var r=document.documentElement;r.setAttribute("data-theme",t);r.style.colorScheme=t;}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
+)};var s=localStorage.getItem(k);var t=s==="light"?"light":"dark";var r=document.documentElement;r.setAttribute("data-theme",t);r.style.colorScheme=t;}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;

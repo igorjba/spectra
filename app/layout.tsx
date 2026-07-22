@@ -27,43 +27,49 @@ const siteUrl = "https://spectra.studio";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Spectra — Generative interface studio",
+    default: "Spectra — Estúdio de interfaces generativas",
     template: "%s — Spectra",
   },
   description:
-    "A browser-native studio for generative design and interface engineering. Shaders, motion systems, real-time physics, and a design system built to hold them.",
+    "Um estúdio nativo do navegador para design generativo e engenharia de interface. Shaders, sistemas de movimento, física em tempo real e um design system para sustentá-los.",
   keywords: [
-    "generative design",
+    "design generativo",
     "creative coding",
     "WebGL",
-    "GLSL shaders",
-    "interface engineering",
+    "shaders GLSL",
+    "engenharia de interface",
     "design system",
-    "motion design",
+    "design de movimento",
   ],
   authors: [{ name: "Spectra" }],
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: "Spectra — Generative interface studio",
+    title: "Spectra — Estúdio de interfaces generativas",
     description:
-      "A browser-native studio for generative design and interface engineering.",
+      "Um estúdio nativo do navegador para design generativo e engenharia de interface.",
     siteName: "Spectra",
+    locale: "pt_BR",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Spectra — Generative interface studio",
+    title: "Spectra — Estúdio de interfaces generativas",
     description:
-      "A browser-native studio for generative design and interface engineering.",
+      "Um estúdio nativo do navegador para design generativo e engenharia de interface.",
   },
   robots: { index: true, follow: true },
 };
 
+/*
+  A meta theme-color não aceita var(), então estes são os dois valores de
+  --background resolvidos em sRGB. São a única cor literal do projeto; ao mexer
+  no token, atualize aqui também.
+*/
 export const viewport: Viewport = {
   colorScheme: "dark light",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0f" },
-    { media: "(prefers-color-scheme: light)", color: "#fbfbfc" },
+    { media: "(prefers-color-scheme: dark)", color: "#090a0f" },
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfe" },
   ],
 };
 
@@ -72,7 +78,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       suppressHydrationWarning
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
     >
@@ -86,9 +92,10 @@ export default function RootLayout({
         <ThemeProvider>
           <a
             href="#main"
-            className="sr-only left-4 top-4 z-[100] rounded-md bg-elevated px-4 py-2 text-sm font-medium text-foreground shadow-lg ring-1 ring-border-strong focus-visible:not-sr-only focus-visible:fixed"
+            /* not-sr-only zera o padding, então o alvo é remontado no foco */
+            className="sr-only left-4 top-4 z-100 rounded-md bg-elevated text-sm font-medium text-foreground shadow-lg ring-1 ring-border-strong focus-visible:not-sr-only focus-visible:fixed focus-visible:px-4 focus-visible:py-2.5"
           >
-            Skip to content
+            Ir para o conteúdo
           </a>
           {children}
         </ThemeProvider>

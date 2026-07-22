@@ -1,29 +1,36 @@
 /*
-  Cinematic scroll.
+  Scroll cinematográfico.
 
-  Each act declares a named view-timeline on its scroll track; the elements
-  inside the pinned scene attach to that timeline, so their progress *is* the
-  scroll's progress — scrubbed rather than timed, and driven on the compositor
-  instead of a scroll listener.
+  Cada ato declara uma view-timeline nomeada na sua trilha de rolagem; os
+  elementos dentro da cena fixada se ligam a essa timeline, então o progresso
+  deles *é* o progresso da rolagem — percorrido em vez de cronometrado, e
+  rodando no compositor em vez de em um listener.
 
-  Progressive enhancement: everything is authored in its final, visible state.
-  The animations only attach where scroll timelines exist and motion is welcome,
-  so unsupported browsers get a readable, static narrative.
+  Aprimoramento progressivo: tudo é escrito no estado final, visível. As
+  animações só se ligam onde há suporte a timelines de rolagem e o movimento é
+  bem-vindo, então navegadores sem suporte recebem uma narrativa estática.
+
+  Amplitude é deliberada: as camadas atravessam a tela inteira, os fragmentos
+  chegam de fora da viewport e o corte final fecha em cortina. Um efeito tímido
+  não se lê como cinema.
 */
 
 .track {
   position: relative;
 }
 
-/* Track height is the act's duration. */
+/* A altura da trilha é a duração do ato. */
 .act1 {
-  height: 240vh;
+  height: 260vh;
 }
 .act2 {
   height: 320vh;
 }
 .act3 {
-  height: 260vh;
+  height: 300vh;
+}
+.act4 {
+  height: 200vh;
 }
 
 .scene {
@@ -41,7 +48,20 @@
   display: grid;
   place-items: center;
   pointer-events: none;
-  will-change: transform;
+  will-change: transform, filter;
+}
+
+/*
+  Repouso das cortinas: fora da tela. Precisa estar no CSS base — na fase
+  anterior ao animation-range o navegador não aplica o primeiro keyframe, e sem
+  isto as duas metades ficariam fechadas sobre a cena antes de o corte começar.
+  É também o estado correto onde não há timelines de rolagem.
+*/
+.curtainTop {
+  transform: translate3d(0, -100%, 0);
+}
+.curtainBottom {
+  transform: translate3d(0, 100%, 0);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -55,15 +75,18 @@
     .act3 {
       view-timeline-name: --act3;
     }
+    .act4 {
+      view-timeline-name: --act4;
+    }
 
     /*
-      Ranges are expressed in `contain`, not `cover`: for a track taller than
-      the viewport, the contain phase is exactly the window where the track
-      covers the viewport — which is precisely when the scene is pinned. That
-      keeps every beat inside the pin regardless of viewport height.
+      Os intervalos são escritos em `contain`, não em `cover`: para uma trilha
+      mais alta que a viewport, a fase contain é exatamente a janela em que a
+      trilha cobre a tela — ou seja, exatamente quando a cena está fixada. Isso
+      mantém cada batida dentro do pin em qualquer altura de viewport.
     */
 
-    /* Act 1 — parallax depth. Each layer travels a different distance. */
+    /* Ato 1 — profundidade. Cada camada percorre uma distância diferente. */
     .far,
     .mid,
     .near {
@@ -85,12 +108,17 @@
       animation-timeline: --act1;
       animation-range: contain 0% contain 100%;
     }
+    .horizon {
+      animation: horizon-open linear both;
+      animation-timeline: --act1;
+      animation-range: contain 0% contain 100%;
+    }
 
-    /* Act 2 — the scrubbed act. */
+    /* Ato 2 — o ato percorrido. */
     .draw {
       animation: draw-path linear both;
       animation-timeline: --act2;
-      animation-range: contain 6% contain 78%;
+      animation-range: contain 4% contain 74%;
     }
     .word {
       animation: word-in linear both;
@@ -103,79 +131,149 @@
       animation-range: contain 2% contain 98%;
       transform-origin: left center;
     }
+    .act2Scene {
+      animation: scene-tilt linear both;
+      animation-timeline: --act2;
+      animation-range: contain 0% contain 100%;
+    }
+    .wash {
+      animation: wash-sweep linear both;
+      animation-timeline: --act2;
+      animation-range: contain 0% contain 100%;
+    }
 
-    /* Act 3 — the pieces converge. */
+    /* Ato 3 — as peças convergem de fora da tela. */
     .shard {
       animation: assemble linear both;
       animation-timeline: --act3;
       animation-range: contain var(--from, 5%) contain var(--to, 50%);
     }
     .title3 {
-      animation: fade-rise linear both;
+      animation: title-land linear both;
       animation-timeline: --act3;
-      animation-range: contain 58% contain 88%;
+      animation-range: contain 54% contain 92%;
+    }
+    .act3Scene {
+      animation: scene-push linear both;
+      animation-timeline: --act3;
+      animation-range: contain 40% contain 100%;
+    }
+
+    /* Ato 4 — o corte. A cena fecha em cortina sobre a última palavra. */
+    .curtainTop,
+    .curtainBottom {
+      animation: linear both;
+      animation-timeline: --act4;
+      animation-range: contain 58% contain 96%;
+    }
+    .curtainTop {
+      animation-name: curtain-top;
+    }
+    .curtainBottom {
+      animation-name: curtain-bottom;
+    }
+    .cut {
+      animation: cut-in linear both;
+      animation-timeline: --act4;
+      animation-range: contain 2% contain 38%;
+    }
+    .cutOut {
+      animation: cut-out linear both;
+      animation-timeline: --act4;
+      animation-range: contain 70% contain 96%;
     }
   }
 }
 
 @keyframes depth-far {
   from {
-    transform: translate3d(0, 7%, 0) scale(1.14);
+    transform: translate3d(0, 26%, 0) scale(1.9);
+    filter: blur(14px);
+    opacity: 0.35;
   }
   to {
-    transform: translate3d(0, -7%, 0) scale(1);
+    transform: translate3d(0, -26%, 0) scale(0.85);
+    filter: blur(0);
+    opacity: 1;
   }
 }
 
 @keyframes depth-mid {
   from {
-    transform: translate3d(0, 24%, 0);
+    transform: translate3d(-16%, 70%, 0) scale(1.35) rotate(-6deg);
   }
   to {
-    transform: translate3d(0, -24%, 0);
+    transform: translate3d(16%, -70%, 0) scale(0.9) rotate(6deg);
   }
 }
 
 @keyframes depth-near {
   from {
-    transform: translate3d(0, 48%, 0);
+    transform: translate3d(0, 135%, 0) scale(1.5);
+    filter: blur(0);
   }
   to {
-    transform: translate3d(0, -48%, 0);
+    transform: translate3d(0, -135%, 0) scale(0.7);
+    filter: blur(6px);
+  }
+}
+
+@keyframes horizon-open {
+  from {
+    transform: scaleX(0.08);
+    opacity: 0;
+  }
+  30%,
+  70% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(0.08);
+    opacity: 0;
   }
 }
 
 @keyframes title-arc {
   0% {
     opacity: 0;
-    transform: translate3d(0, 2rem, 0);
+    transform: translate3d(0, 5rem, 0) scale(0.82);
+    filter: blur(12px);
   }
-  26%,
-  72% {
+  24%,
+  70% {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
   100% {
     opacity: 0;
-    transform: translate3d(0, -1.5rem, 0);
+    transform: translate3d(0, -4rem, 0) scale(1.14);
+    filter: blur(10px);
   }
 }
 
 @keyframes draw-path {
   from {
     stroke-dashoffset: 1;
+    stroke-width: 1;
   }
   to {
     stroke-dashoffset: 0;
+    stroke-width: 7;
   }
 }
 
 @keyframes word-in {
   from {
-    opacity: 0.14;
+    opacity: 0;
+    transform: translate3d(0, 1.4em, 0) rotate(6deg) scale(0.7);
+    filter: blur(10px);
   }
   to {
     opacity: 1;
+    transform: none;
+    filter: blur(0);
   }
 }
 
@@ -188,8 +286,31 @@
   }
 }
 
-/* Shards are centred on their anchor point, so the -50% offset is preserved
-   through the whole travel. */
+@keyframes scene-tilt {
+  from {
+    transform: perspective(1200px) rotateX(14deg) scale(1.12);
+  }
+  to {
+    transform: perspective(1200px) rotateX(-10deg) scale(1);
+  }
+}
+
+@keyframes wash-sweep {
+  from {
+    transform: translate3d(-30%, 20%, 0) scale(1.4);
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.24;
+  }
+  to {
+    transform: translate3d(30%, -20%, 0) scale(1.1);
+    opacity: 0.06;
+  }
+}
+
+/* Os fragmentos são centrados no ponto de ancoragem, então o -50% é preservado
+   ao longo de todo o percurso. */
 @keyframes assemble {
   from {
     opacity: 0;
@@ -198,21 +319,82 @@
         calc(-50% + var(--ty, 0px)),
         0
       )
-      rotate(var(--rot, 0deg)) scale(0.82);
+      rotate(var(--rot, 0deg)) scale(0.2);
+    filter: blur(8px);
+  }
+  70% {
+    opacity: 1;
+    filter: blur(0);
   }
   to {
     opacity: 1;
     transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(1);
+    filter: blur(0);
   }
 }
 
-@keyframes fade-rise {
+@keyframes title-land {
   from {
     opacity: 0;
-    transform: translate3d(0, 1.5rem, 0);
+    transform: translate3d(0, 3rem, 0) scale(1.35);
+    letter-spacing: 0.14em;
+    filter: blur(14px);
   }
   to {
     opacity: 1;
     transform: none;
+    letter-spacing: -0.025em;
+    filter: blur(0);
+  }
+}
+
+@keyframes scene-push {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes curtain-top {
+  from {
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes curtain-bottom {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cut-in {
+  from {
+    opacity: 0;
+    transform: scale(2.6);
+    filter: blur(24px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes cut-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.86);
   }
 }

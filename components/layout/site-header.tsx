@@ -9,9 +9,9 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { label: "Lab", href: "/#lab" },
-  { label: "System", href: "/#system" },
-  { label: "Approach", href: "/#approach" },
+  { label: "Campo", href: "/#lab" },
+  { label: "Fluido", href: "/lab/fluid" },
+  { label: "Generativo", href: "/lab/generative" },
 ];
 
 export function SiteHeader() {
@@ -44,12 +44,12 @@ export function SiteHeader() {
         <Link
           href="/"
           className="rounded-full px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-          aria-label="Spectra home"
+          aria-label="Spectra — início"
         >
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -64,7 +64,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <ButtonLink href="/#lab" size="sm" variant="secondary">
-            Enter the lab
+            Ver as técnicas
           </ButtonLink>
         </div>
       </div>

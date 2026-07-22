@@ -20,6 +20,7 @@ uniform vec2  u_mouse;
 uniform float u_time;
 uniform float u_theme;
 uniform float u_active;
+uniform vec3  u_bg;
 
 mat2 rot(float a) {
   float c = cos(a), s = sin(a);
@@ -125,10 +126,7 @@ void main() {
   vec3 cv = cross(cu, cw);
   vec3 rd = normalize(uv.x * cu + uv.y * cv + 1.5 * cw);
 
-  vec3 darkBg = vec3(0.05, 0.048, 0.068);
-  vec3 lightBg = vec3(0.955, 0.957, 0.975);
-  vec3 bg = mix(lightBg, darkBg, u_theme);
-  bg *= 1.0 - 0.28 * length(uv);
+  vec3 bg = u_bg * (1.0 - 0.28 * length(uv));
 
   // Sphere tracing.
   float t = 0.0;
@@ -186,7 +184,7 @@ export function RaymarchedForms({ className }: { className?: string }) {
       className={className}
       dprCap={1.5}
       idleActive={0}
-      ariaLabel="A cluster of three-dimensional forms blended into one body, raymarched and lit in real time; the camera orbits as the pointer moves."
+      ariaLabel="Um conjunto de formas tridimensionais fundidas em um corpo só, percorridas por raymarching e iluminadas em tempo real; a câmera orbita conforme o ponteiro se move."
     />
   );
 }

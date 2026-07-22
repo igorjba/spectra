@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { useTheme } from "@/components/theme/theme-provider";
+import { type Rgb, rampRgb, readThemeRgb, spectraRamp } from "@/lib/theme-color";
 import { cn } from "@/lib/utils";
 
 /*
@@ -212,14 +213,11 @@ precision highp float;
 in vec2 vUv;
 out vec4 fragColor;
 uniform sampler2D uTexture;
-uniform float uTheme;
+uniform vec3 uBg;
 void main() {
   vec3 dye = texture(uTexture, vUv).rgb;
   float intensity = clamp(max(dye.r, max(dye.g, dye.b)) * 1.15, 0.0, 1.0);
-  vec3 darkBg = vec3(0.05, 0.048, 0.068);
-  vec3 lightBg = vec3(0.955, 0.957, 0.975);
-  vec3 bg = mix(lightBg, darkBg, uTheme);
-  vec3 col = mix(bg, dye, intensity);
+  vec3 col = mix(uBg, dye, intensity);
   vec2 p = vUv - 0.5;
   col *= 1.0 - 0.32 * dot(p, p);
   fragColor = vec4(col, 1.0);
@@ -283,34 +281,16 @@ function compileShader(gl: WebGL2RenderingContext, type: number, src: string) {
   return shader;
 }
 
-// Cool, on-brand dye: hue restricted to the blue/iris/magenta/teal wedge.
-function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-  const i = Math.floor(h * 6);
-  const f = h * 6 - i;
-  const p = v * (1 - s);
-  const q = v * (1 - f * s);
-  const t = v * (1 - (1 - f) * s);
-  switch (i % 6) {
-    case 0: return [v, t, p];
-    case 1: return [q, v, p];
-    case 2: return [p, v, t];
-    case 3: return [p, q, v];
-    case 4: return [t, p, v];
-    default: return [v, p, q];
-  }
-}
+/*
+  O corante sai da rampa espectral da marca, não de uma cunha de matiz fixa: as
+  paradas vêm dos tokens, então o fluido troca de paleta junto com o tema. A
+  escala mantém o corante na faixa de energia que o passo de exibição espera.
+*/
+const DYE_ENERGY = 0.22;
 
-function brandColor(): [number, number, number] {
-  const h = 0.52 + Math.random() * 0.34; // teal -> blue -> violet -> magenta
-  const [r, g, b] = hsvToRgb(h, 0.85, 1);
-  return [r * 0.22, g * 0.22, b * 0.22];
-}
-
-// Same cool wedge, but driven by a phase so a single drag sweeps the spectrum.
-function coolColor(phase: number): [number, number, number] {
-  const h = 0.52 + 0.34 * (0.5 + 0.5 * Math.sin(phase));
-  const [r, g, b] = hsvToRgb(h, 0.85, 1);
-  return [r * 0.22, g * 0.22, b * 0.22];
+function dyeColor(ramp: Rgb[], t: number): Rgb {
+  const [r, g, b] = rampRgb(ramp, t);
+  return [r * DYE_ENERGY, g * DYE_ENERGY, b * DYE_ENERGY];
 }
 
 // WebGL2 + float-render support, probed once on a throwaway canvas and cached.
@@ -460,29 +440,54 @@ export function FluidField({ className }: { className?: string }) {
       glc.drawElements(glc.TRIANGLES, 6, glc.UNSIGNED_SHORT, 0);
     }
 
+    // Paleta e fundo vêm dos tokens; só são relidos quando o tema troca.
+    let ramp = spectraRamp();
+    let bg = readThemeRgb("--background", [0.05, 0.048, 0.068]);
+    let paintedTheme = themeRef.current;
+
+    function syncTheme() {
+      if (paintedTheme === themeRef.current) return;
+      paintedTheme = themeRef.current;
+      ramp = spectraRamp();
+      bg = readThemeRgb("--background", bg);
+    }
+
     // Pointer tracking — deltas drive the velocity splats.
     const pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false, phase: Math.random() * 6.28 };
 
+    /*
+      A caixa do canvas é medida no resize, nunca por evento: com a peça em tela
+      cheia, os eventos vêm da janela inteira e um getBoundingClientRect por
+      pointermove forçaria layout a cada movimento do cursor.
+    */
+    let box = canvas.getBoundingClientRect();
+
+    const toLocal = (clientX: number, clientY: number) => ({
+      x: (clientX - box.left) / box.width,
+      y: 1 - (clientY - box.top) / box.height,
+    });
+
     const updatePointer = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = 1 - (e.clientY - rect.top) / rect.height;
+      const { x, y } = toLocal(e.clientX, e.clientY);
       pointer.dx = x - pointer.x;
       pointer.dy = y - pointer.y;
       pointer.x = x;
       pointer.y = y;
-      pointer.moved = Math.abs(pointer.dx) > 0 || Math.abs(pointer.dy) > 0;
+      pointer.moved = pointer.dx !== 0 || pointer.dy !== 0;
     };
     const onDown = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointer.x = (e.clientX - rect.left) / rect.width;
-      pointer.y = 1 - (e.clientY - rect.top) / rect.height;
+      const { x, y } = toLocal(e.clientX, e.clientY);
+      pointer.x = x;
+      pointer.y = y;
       pointer.phase = Math.random() * 6.28;
     };
 
+    // Os eventos vêm da janela, não do canvas: a peça ocupa a tela inteira e
+    // fica atrás do conteúdo, então o ponteiro precisa alcançá-la mesmo quando
+    // passa sobre o texto.
     if (!reduceMotion) {
-      canvas.addEventListener("pointermove", updatePointer, { passive: true });
-      canvas.addEventListener("pointerdown", onDown, { passive: true });
+      window.addEventListener("pointermove", updatePointer, { passive: true });
+      window.addEventListener("pointerdown", onDown, { passive: true });
     }
 
     function splatAt(x: number, y: number, dx: number, dy: number, color: [number, number, number]) {
@@ -505,7 +510,7 @@ export function FluidField({ className }: { className?: string }) {
 
     function multipleSplats(count: number) {
       for (let i = 0; i < count; i++) {
-        const color = brandColor();
+        const color = dyeColor(ramp, Math.random());
         const x = Math.random();
         const y = Math.random();
         const dx = 550 * (Math.random() - 0.5);
@@ -578,9 +583,10 @@ export function FluidField({ className }: { className?: string }) {
 
     function render() {
       const glc = gl!;
+      syncTheme();
       glc.useProgram(display.program);
       glc.uniform1i(display.loc("uTexture"), dye.read.attach(0));
-      glc.uniform1f(display.loc("uTheme"), themeRef.current === "dark" ? 1 : 0);
+      glc.uniform3f(display.loc("uBg"), bg[0], bg[1], bg[2]);
       blit(null);
     }
 
@@ -588,9 +594,9 @@ export function FluidField({ className }: { className?: string }) {
     let height = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      width = Math.max(1, Math.round(rect.width * dpr));
-      height = Math.max(1, Math.round(rect.height * dpr));
+      box = canvas.getBoundingClientRect();
+      width = Math.max(1, Math.round(box.width * dpr));
+      height = Math.max(1, Math.round(box.height * dpr));
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
@@ -599,10 +605,19 @@ export function FluidField({ className }: { className?: string }) {
     resize();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(canvas);
+    // A peça é `fixed`, mas a rolagem muda a caixa quando ela não é.
+    window.addEventListener("scroll", resize, { passive: true });
 
     let raf = 0;
     let running = true;
     let last = performance.now();
+
+    // Escoamento próprio: sem ele o corante dissipa e a tela fica vazia até
+    // alguém passar o cursor. Um ponteiro fantasma percorre uma curva de
+    // Lissajous e alimenta o campo enquanto ninguém interage.
+    const ghost = { x: 0.5, y: 0.5 };
+    let lastInteraction = performance.now();
+    const IDLE_AFTER = 2200;
 
     const frame = (now: number) => {
       if (!running) return;
@@ -611,10 +626,27 @@ export function FluidField({ className }: { className?: string }) {
       if (pointer.moved) {
         pointer.moved = false;
         pointer.phase += 0.06;
+        lastInteraction = now;
+        ghost.x = pointer.x;
+        ghost.y = pointer.y;
         splatAt(
           pointer.x, pointer.y,
           pointer.dx * SPLAT_FORCE, pointer.dy * SPLAT_FORCE,
-          coolColor(pointer.phase),
+          dyeColor(ramp, 0.5 + 0.5 * Math.sin(pointer.phase)),
+        );
+      } else if (now - lastInteraction > IDLE_AFTER) {
+        const t = now / 1000;
+        const gx = 0.5 + 0.28 * Math.sin(t * 0.37) + 0.1 * Math.sin(t * 0.91);
+        const gy = 0.5 + 0.24 * Math.cos(t * 0.29) + 0.09 * Math.cos(t * 1.13);
+        const dx = gx - ghost.x;
+        const dy = gy - ghost.y;
+        ghost.x = gx;
+        ghost.y = gy;
+        pointer.phase += 0.012;
+        splatAt(
+          gx, gy,
+          dx * SPLAT_FORCE * 0.9, dy * SPLAT_FORCE * 0.9,
+          dyeColor(ramp, 0.5 + 0.5 * Math.sin(pointer.phase)),
         );
       }
       step(dt);
@@ -667,8 +699,9 @@ export function FluidField({ className }: { className?: string }) {
       io.disconnect();
       resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
-      canvas.removeEventListener("pointermove", updatePointer);
-      canvas.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", updatePointer);
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("scroll", resize);
       for (const f of allFbos()) {
         gl.deleteTexture(f.texture);
         gl.deleteFramebuffer(f.fbo);
@@ -699,7 +732,7 @@ export function FluidField({ className }: { className?: string }) {
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label="An interactive fluid simulation; dragging the pointer pushes color through the velocity field in real time."
+      aria-label="Simulação de fluido interativa: arrastar o ponteiro empurra cor através do campo de velocidade em tempo real."
       className={cn("h-full w-full touch-none", className)}
     />
   );

@@ -3,33 +3,36 @@ import { ArrowUpRight } from "lucide-react";
 
 import { type LabEntry, LAB_ENTRIES } from "@/lib/lab";
 import { cn } from "@/lib/utils";
+import { CardPreview } from "@/components/landing/card-preview";
 import { Reveal, RevealGroup } from "@/components/ui/reveal";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-export function LabField() {
+/**
+ * O catálogo. Vive dentro da mesma seção do hero e sobre o mesmo campo, então
+ * não abre com borda nem com fundo próprio — a leitura continua de cima.
+ */
+export function LabCatalog() {
+  const live = LAB_ENTRIES.filter((e) => e.status === "live").length;
+
   return (
-    <section
-      id="lab"
-      className="relative scroll-mt-24 border-t border-border py-28 sm:py-36"
-    >
+    <div id="lab" className="relative scroll-mt-24 pb-32 sm:pb-44">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <p className="font-mono text-xs uppercase tracking-[0.22em] text-accent">
-              The field
+              O campo
             </p>
             <h2 className="mt-5 font-display text-display font-semibold text-balance text-foreground">
-              A catalog of techniques.
+              Um catálogo de técnicas.
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty">
-              Not a gallery of screens — a set of methods, each hard to build
-              and each running natively in the browser. The field grows one
-              technique at a time.
+              Não é uma galeria de telas — é um conjunto de métodos, cada um
+              difícil de construir e rodando nativamente no navegador. O campo
+              cresce uma técnica por vez.
             </p>
           </div>
           <p className="font-mono text-sm text-faint">
-            {LAB_ENTRIES.filter((e) => e.status === "live").length} live ·{" "}
-            {LAB_ENTRIES.length} planned
+            {live} no ar · {LAB_ENTRIES.length} no catálogo
           </p>
         </Reveal>
 
@@ -44,7 +47,7 @@ export function LabField() {
           ))}
         </RevealGroup>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -53,29 +56,32 @@ function LabCard({ entry }: { entry: LabEntry }) {
   const clickable = Boolean(entry.href);
 
   const cardClass = cn(
-    "group relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 transition-all duration-300",
+    "group relative flex h-full flex-col overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all duration-300 ease-out-quart",
     isLive
-      ? "border-border-strong bg-card hover:-translate-y-1 hover:border-accent/60"
-      : "border-border bg-card/60 hover:border-border-strong",
+      ? "border-border-strong bg-card/70 hover:-translate-y-1.5 hover:border-accent/60 hover:shadow-lg"
+      : "border-border bg-card/50 hover:border-border-strong",
   );
 
   const body = (
     <>
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-2 -top-4 font-display text-[5rem] font-bold leading-none text-foreground/[0.04] transition-colors duration-300 group-hover:text-foreground/[0.07]"
-      >
-        {entry.index}
-      </span>
+      <CardPreview slug={entry.slug} />
 
-      <div className="flex items-center justify-between">
+      <div className="mt-5 flex items-center justify-between">
         <StatusBadge status={entry.status} />
-        {clickable && (
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />
-        )}
+        <span className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="font-mono text-[0.7rem] text-faint"
+          >
+            {entry.index}
+          </span>
+          {clickable && (
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />
+          )}
+        </span>
       </div>
 
-      <h3 className="mt-10 font-display text-xl font-semibold text-foreground">
+      <h3 className="mt-4 font-display text-xl font-semibold text-foreground">
         {entry.title}
       </h3>
       <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">

@@ -12,103 +12,103 @@ export type LabEntry = {
 };
 
 /**
- * The lab catalog. Each entry is a browser-native technique, not a mockup —
- * the point is the engineering behind the pixels. Status is honest: `live`
- * ships today, the rest are on the build path.
+ * O catálogo do laboratório. Cada entrada é uma técnica nativa do navegador,
+ * não uma maquete — o ponto é a engenharia por trás dos pixels. O status é
+ * honesto: `live` já está no ar, o resto está no caminho.
  */
 export const LAB_ENTRIES: LabEntry[] = [
   {
     slug: "spectral-field",
     index: "01",
-    title: "Spectral Field",
+    title: "Campo Espectral",
     summary:
-      "A full-screen fragment shader: fractal-noise domain warping colored through a cosine palette, warped in real time by the pointer.",
-    technique: "WebGL2 · GLSL · domain warping",
+      "Um fragment shader em tela cheia: ruído fractal com deformação de domínio, colorido por uma rampa cossenoidal e distorcido em tempo real pelo ponteiro.",
+    technique: "WebGL2 · GLSL · deformação de domínio",
     status: "live",
   },
   {
     slug: "raymarched-forms",
     index: "02",
-    title: "Raymarched Forms",
+    title: "Formas por Raymarching",
     summary:
-      "Signed-distance geometry marched per pixel — 3D shapes that exist only as a distance function, lit and shaded on the GPU.",
-    technique: "Raymarching · SDF · lighting",
+      "Geometria de campo de distância percorrida pixel a pixel — sólidos que existem apenas como uma função matemática, iluminados e sombreados na GPU.",
+    technique: "Raymarching · SDF · iluminação",
     status: "live",
     href: "/lab/raymarched-forms",
   },
   {
     slug: "fluid",
     index: "03",
-    title: "Fluid",
+    title: "Fluido",
     summary:
-      "A GPU fluid solver: advection, diffusion, and pressure projection over a velocity field you can push with your cursor.",
-    technique: "Navier–Stokes · FBO ping-pong",
+      "Um solver de fluidos na GPU: advecção, difusão e projeção de pressão sobre um campo de velocidade que o cursor empurra.",
+    technique: "Navier–Stokes · ping-pong de FBO",
     status: "live",
     href: "/lab/fluid",
   },
   {
     slug: "verlet",
     index: "04",
-    title: "Verlet Bodies",
+    title: "Corpos de Verlet",
     summary:
-      "Interface elements with mass. Verlet integration drives gravity, springs, and collision — grab them, throw them, watch them settle.",
-    technique: "Verlet integration · constraints",
+      "Elementos de interface com massa. A integração de Verlet governa gravidade, molas e colisão — segure, arremesse e veja tudo assentar.",
+    technique: "Integração de Verlet · restrições",
     status: "live",
     href: "/lab/verlet",
   },
   {
     slug: "generative",
     index: "05",
-    title: "Generative Compositions",
+    title: "Composições Generativas",
     summary:
-      "Layouts drawn by rule, not by hand. Every reload seeds a new composition from the same algorithm — deterministic, reproducible art.",
-    technique: "Seeded RNG · procedural layout",
+      "Layouts desenhados por regra, não à mão. Cada semente produz uma composição nova a partir do mesmo algoritmo — determinística e reproduzível.",
+    technique: "PRNG semeado · layout procedural",
     status: "live",
     href: "/lab/generative",
   },
   {
     slug: "cinematic-scroll",
     index: "06",
-    title: "Cinematic Scroll",
+    title: "Scroll Cinematográfico",
     summary:
-      "A narrative that assembles as you scroll — pinned scenes, scrubbed timelines, and depth that resolves like a title sequence.",
-    technique: "Scroll-linked timelines · parallax",
+      "Uma narrativa que se monta conforme a rolagem — cenas fixadas, linhas do tempo percorridas e profundidade que resolve como uma abertura de filme.",
+    technique: "Timelines de rolagem · parallax",
     status: "live",
     href: "/lab/cinematic-scroll",
   },
   {
     slug: "kinetic-type",
     index: "07",
-    title: "Kinetic Type",
+    title: "Tipografia Cinética",
     summary:
-      "Variable fonts that breathe. Weight, width, and optical size respond to motion and input; text deforms and reflows without breaking.",
-    technique: "Variable fonts · axis animation",
+      "Fontes variáveis que respiram. Peso, largura e tamanho óptico respondem ao movimento e ao ponteiro; o texto deforma sem quebrar e depois assenta.",
+    technique: "Fontes variáveis · animação de eixos",
     status: "live",
     href: "/lab/kinetic-type",
   },
   {
     slug: "audio-reactive",
     index: "08",
-    title: "Audio-Reactive",
+    title: "Áudio Reativo",
     summary:
-      "The interface listens. An FFT of live audio drives layout, color, and motion — the screen pulses and reorganizes to sound.",
-    technique: "Web Audio · FFT · analysis",
+      "A interface escuta. Uma FFT do áudio ao vivo comanda layout, cor e movimento — a tela pulsa e se reorganiza conforme o som.",
+    technique: "Web Audio · FFT · análise",
     status: "live",
     href: "/lab/audio-reactive",
   },
 ];
 
 export const labStatusLabel: Record<LabStatus, string> = {
-  live: "Live",
-  building: "In progress",
-  planned: "On the path",
+  live: "No ar",
+  building: "Em construção",
+  planned: "No caminho",
 };
 
 export function getLabEntry(slug: string): LabEntry | undefined {
   return LAB_ENTRIES.find((entry) => entry.slug === slug);
 }
 
-/** Previous and next entries in catalog order, wrapping around the ends. */
+/** Entradas anterior e seguinte na ordem do catálogo, circulando nas pontas. */
 export function labNeighbors(slug: string): {
   prev: LabEntry;
   next: LabEntry;

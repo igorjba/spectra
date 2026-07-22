@@ -18,6 +18,7 @@ uniform vec2  u_mouse;
 uniform float u_time;
 uniform float u_theme;
 uniform float u_active;
+uniform vec3  u_bg;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -88,12 +89,8 @@ void main() {
 
   float density = smoothstep(0.15, 0.95, f + 0.25 * length(r));
 
-  vec3 darkBg = vec3(0.052, 0.048, 0.07);
-  vec3 lightBg = vec3(0.975, 0.975, 0.985);
-  vec3 bg = mix(lightBg, darkBg, u_theme);
-
   float ink = mix(0.32, 0.9, u_theme);
-  col = mix(bg, col, density * ink + energy * 0.35);
+  col = mix(u_bg, col, density * ink + energy * 0.35);
 
   float vignette = smoothstep(1.7, 0.35, length(uv));
   col *= mix(0.9, 1.0, vignette);

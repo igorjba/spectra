@@ -13,7 +13,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={isDark ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
       className={cn(
         "relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground ring-1 ring-border transition-colors duration-200 hover:text-foreground hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className,

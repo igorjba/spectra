@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useTheme } from "@/components/theme/theme-provider";
+import { type Rgb, readThemeRgb } from "@/lib/theme-color";
 import { cn } from "@/lib/utils";
 
 const VERT = /* glsl */ `#version 300 es
@@ -22,6 +23,7 @@ void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
     uniform float u_time;    // seconds since mount
     uniform float u_theme;   // 1.0 dark, 0.0 light
     uniform float u_active;  // pointer energy, smoothed 0..1
+    uniform vec3  u_bg;      // token --background do tema em vigor
 */
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string) {
@@ -60,10 +62,14 @@ export function ShaderCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { theme } = useTheme();
   const themeRef = useRef(theme);
+  // Cor de fundo vinda do token, relida a cada troca de tema em vez de fixada
+  // no shader.
+  const bgRef = useRef<Rgb>([0.05, 0.048, 0.068]);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     themeRef.current = theme;
+    bgRef.current = readThemeRgb("--background", bgRef.current);
   }, [theme]);
 
   useEffect(() => {
@@ -121,6 +127,7 @@ export function ShaderCanvas({
     const uTime = gl.getUniformLocation(program, "u_time");
     const uTheme = gl.getUniformLocation(program, "u_theme");
     const uActive = gl.getUniformLocation(program, "u_active");
+    const uBg = gl.getUniformLocation(program, "u_bg");
 
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     let width = 0;
@@ -179,6 +186,8 @@ export function ShaderCanvas({
       gl.uniform1f(uTime, time);
       gl.uniform1f(uTheme, themeRef.current === "dark" ? 1 : 0);
       gl.uniform1f(uActive, active);
+      const bg = bgRef.current;
+      gl.uniform3f(uBg, bg[0], bg[1], bg[2]);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
 
       if (!reduceMotion) raf = requestAnimationFrame(render);

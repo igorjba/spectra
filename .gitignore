@@ -17,9 +17,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env
+# env — nenhuma variante entra no repositório
 .env
-.env*.local
+.env*
 
 # vercel
 .vercel

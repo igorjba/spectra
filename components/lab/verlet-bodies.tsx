@@ -3,6 +3,13 @@
 import { useEffect, useRef } from "react";
 
 import { useTheme } from "@/components/theme/theme-provider";
+import {
+  cssRgb,
+  mixRgb,
+  rampRgb,
+  readThemeRgb,
+  spectraRamp,
+} from "@/lib/theme-color";
 import { cn } from "@/lib/utils";
 
 /*
@@ -28,7 +35,10 @@ type Body = {
   py: number;
   r: number;
   mass: number;
-  hue: number;
+  /** Posição na rampa espectral da marca, 0..1 — não uma cor fixa. */
+  tint: number;
+  /** Paradas do gradiente e cor da mola, resolvidas uma vez por tema. */
+  paint: { hi: string; mid: string; lo: string; link: string };
 };
 
 type Link = { a: Body; b: Body; len: number };
@@ -76,7 +86,8 @@ export function VerletBodies({ className }: { className?: string }) {
           py: y,
           r,
           mass: r,
-          hue: 202 + Math.random() * 118, // cyan-blue -> violet -> magenta
+          tint: Math.random(),
+          paint: { hi: "", mid: "", lo: "", link: "" },
         });
       }
       // Chain a few neighbors into springs so structures swing and deform.
@@ -86,6 +97,7 @@ export function VerletBodies({ className }: { className?: string }) {
         const b = shuffled[i + 1]!;
         links.push({ a, b, len: (a.r + b.r) * rand(1.6, 2.4) });
       }
+      repaint();
     }
 
     // Pointer state.
@@ -237,16 +249,58 @@ export function VerletBodies({ className }: { className?: string }) {
       }
     }
 
-    function render() {
+    /*
+      Paleta lida dos tokens: os corpos não carregam cor própria, só uma posição
+      na rampa espectral. Trocar o tema repinta tudo sem tocar na simulação.
+    */
+    let paintedTheme = themeRef.current;
+    let rim = "";
+    let specularPip = "";
+
+    /*
+      Resolve as cores uma vez por tema e guarda a string pronta em cada corpo.
+      Sem isto, cada quadro percorreria a rampa e montaria strings para todos os
+      corpos e molas — alocação pura dentro de um laço que já resolve física.
+    */
+    function repaint() {
       const dark = themeRef.current === "dark";
+      const ramp = spectraRamp();
+      const fg = readThemeRgb("--foreground", [1, 1, 1]);
+      const bgc = readThemeRgb("--background", [0, 0, 0]);
+      // O brilho especular é a cor mais clara do tema; o contorno caminha para
+      // o --foreground, então define no claro e ilumina no escuro.
+      const specular = dark ? fg : bgc;
+
+      rim = cssRgb(fg, dark ? 0.12 : 0.16);
+      specularPip = cssRgb(specular, 0.45);
+
+      for (const b of bodies) {
+        const base = rampRgb(ramp, b.tint);
+        b.paint = {
+          hi: cssRgb(mixRgb(base, specular, 0.32)),
+          mid: cssRgb(base),
+          lo: cssRgb(mixRgb(base, bgc, 0.4)),
+          link: cssRgb(base, dark ? 0.35 : 0.3),
+        };
+      }
+    }
+
+    function syncTheme() {
+      if (paintedTheme === themeRef.current) return;
+      paintedTheme = themeRef.current;
+      repaint();
+    }
+
+    function render() {
+      syncTheme();
       ctx!.clearRect(0, 0, width, height);
 
       // Springs first, behind the bodies.
       ctx!.lineWidth = 1.5;
       for (const link of links) {
         const grad = ctx!.createLinearGradient(link.a.x, link.a.y, link.b.x, link.b.y);
-        grad.addColorStop(0, `hsl(${link.a.hue} 70% 60% / ${dark ? 0.35 : 0.3})`);
-        grad.addColorStop(1, `hsl(${link.b.hue} 70% 60% / ${dark ? 0.35 : 0.3})`);
+        grad.addColorStop(0, link.a.paint.link);
+        grad.addColorStop(1, link.b.paint.link);
         ctx!.strokeStyle = grad;
         ctx!.beginPath();
         ctx!.moveTo(link.a.x, link.a.y);
@@ -255,7 +309,6 @@ export function VerletBodies({ className }: { className?: string }) {
       }
 
       for (const b of bodies) {
-        const light = dark ? 68 : 62;
         const g = ctx!.createRadialGradient(
           b.x - b.r * 0.35,
           b.y - b.r * 0.4,
@@ -264,9 +317,9 @@ export function VerletBodies({ className }: { className?: string }) {
           b.y,
           b.r,
         );
-        g.addColorStop(0, `hsl(${b.hue} 85% ${light + 12}%)`);
-        g.addColorStop(0.55, `hsl(${b.hue} 70% ${light}%)`);
-        g.addColorStop(1, `hsl(${b.hue} 62% ${light - 22}%)`);
+        g.addColorStop(0, b.paint.hi);
+        g.addColorStop(0.55, b.paint.mid);
+        g.addColorStop(1, b.paint.lo);
         ctx!.fillStyle = g;
         ctx!.beginPath();
         ctx!.arc(b.x, b.y, b.r, 0, TAU);
@@ -274,13 +327,11 @@ export function VerletBodies({ className }: { className?: string }) {
 
         // Rim + specular pip for a little dimensionality.
         ctx!.lineWidth = 1;
-        ctx!.strokeStyle = dark
-          ? "rgba(255,255,255,0.12)"
-          : "rgba(0,0,0,0.08)";
+        ctx!.strokeStyle = rim;
         ctx!.stroke();
         ctx!.beginPath();
         ctx!.arc(b.x - b.r * 0.32, b.y - b.r * 0.36, b.r * 0.16, 0, TAU);
-        ctx!.fillStyle = "rgba(255,255,255,0.45)";
+        ctx!.fillStyle = specularPip;
         ctx!.fill();
       }
     }
@@ -380,7 +431,7 @@ export function VerletBodies({ className }: { className?: string }) {
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label="Physical bodies falling under gravity, colliding and stacking; drag one and throw it and the others respond."
+      aria-label="Corpos físicos caindo sob gravidade, colidindo e se empilhando; arraste um, arremesse, e os outros reagem."
       className={cn("h-full w-full touch-none", className)}
     />
   );

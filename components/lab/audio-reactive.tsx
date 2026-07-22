@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, Play, Square, Waves } from "lucide-react";
 
 import { useTheme } from "@/components/theme/theme-provider";
+import {
+  cssRgb,
+  mixRgb,
+  rampRgb,
+  readThemeRgb,
+  spectraRamp,
+} from "@/lib/theme-color";
 import { cn } from "@/lib/utils";
 
 /*
@@ -183,7 +190,29 @@ export function AudioReactive({ className }: { className?: string }) {
     const bins = new Uint8Array(analyser.frequencyBinCount);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+    // Espectro pintado com a rampa da marca: a frequência escolhe a parada da
+    // rampa, o nível escolhe quanto de luz entra. Nada de matiz fixa.
+    let ramp = spectraRamp();
+    let accent = readThemeRgb("--accent", [0.55, 0.4, 0.95]);
+    let fg = readThemeRgb("--foreground", [1, 1, 1]);
+    let paintedTheme = themeRef.current;
+
+    const syncTheme = () => {
+      if (paintedTheme === themeRef.current) return;
+      paintedTheme = themeRef.current;
+      ramp = spectraRamp();
+      accent = readThemeRgb("--accent", accent);
+      fg = readThemeRgb("--foreground", fg);
+    };
+
     const render = () => {
+      syncTheme();
+      /*
+        Energia caminha na direção do --foreground: no tema escuro isso clareia
+        a barra, no claro escurece. Nos dois casos o pico ganha contraste contra
+        o fundo em vez de sumir nele.
+      */
+      const lift = fg;
       const rect = canvas.getBoundingClientRect();
       const w = Math.max(1, Math.round(rect.width));
       const h = Math.max(1, Math.round(rect.height));
@@ -224,8 +253,10 @@ export function AudioReactive({ className }: { className?: string }) {
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
-        const hue = 205 + t * 115; // blue -> violet -> magenta
-        ctx2d.strokeStyle = `hsl(${hue} ${65 + value * 25}% ${45 + value * 30}%)`;
+        // Faixa grave → aguda percorre a rampa; o nível clareia a barra.
+        ctx2d.strokeStyle = cssRgb(
+          mixRgb(rampRgb(ramp, t), lift, value * 0.35),
+        );
         ctx2d.lineWidth = Math.max(2, (Math.min(w, h) * 0.012) * (0.6 + value));
         ctx2d.globalAlpha = 0.35 + value * 0.65;
         ctx2d.beginPath();
@@ -242,9 +273,11 @@ export function AudioReactive({ className }: { className?: string }) {
       // Core pulses with the low end.
       const coreRadius = base * (0.5 + bass * 0.38);
       const core = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, coreRadius);
-      core.addColorStop(0, `hsl(268 92% ${60 + bass * 20}%)`);
-      core.addColorStop(0.55, `hsl(272 85% ${48 + bass * 16}% / 0.55)`);
-      core.addColorStop(1, "hsl(272 80% 50% / 0)");
+      // O grave manda na opacidade, não na cor: o núcleo pulsa sem lavar nem
+      // furar de escuro quando o tema é claro.
+      core.addColorStop(0, cssRgb(accent, 0.7 + bass * 0.3));
+      core.addColorStop(0.55, cssRgb(accent, 0.4));
+      core.addColorStop(1, cssRgb(accent, 0));
       ctx2d.fillStyle = core;
       ctx2d.beginPath();
       ctx2d.arc(cx, cy, coreRadius, 0, Math.PI * 2);
@@ -253,7 +286,7 @@ export function AudioReactive({ className }: { className?: string }) {
       const readout = readoutRef.current;
       if (readout) {
         const fmt = (v: number) => String(Math.round(Math.min(1, v) * 100)).padStart(3, "0");
-        readout.textContent = `bass ${fmt(bass)}  ·  mid ${fmt(mid)}  ·  treble ${fmt(treble)}`;
+        readout.textContent = `grave ${fmt(bass)}  ·  médio ${fmt(mid)}  ·  agudo ${fmt(treble)}`;
       }
 
       rafRef.current = requestAnimationFrame(render);
@@ -269,7 +302,7 @@ export function AudioReactive({ className }: { className?: string }) {
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext })
         .webkitAudioContext;
-    if (!Ctor) throw new Error("Web Audio is unavailable in this browser.");
+    if (!Ctor) throw new Error("A Web Audio não está disponível neste navegador.");
 
     const ctx = new Ctor();
     const analyser = ctx.createAnalyser();
@@ -297,7 +330,7 @@ export function AudioReactive({ className }: { className?: string }) {
       draw();
     } catch (err) {
       setNotice(
-        err instanceof Error ? err.message : "Audio could not be started.",
+        err instanceof Error ? err.message : "Não foi possível iniciar o áudio.",
       );
     }
   }, [draw, ensureGraph]);
@@ -325,7 +358,7 @@ export function AudioReactive({ className }: { className?: string }) {
       setRunning(true);
       draw();
     } catch {
-      setNotice("Microphone unavailable — staying on the synthesised source.");
+      setNotice("Microfone indisponível — seguindo com a fonte sintetizada.");
       if (!running) void start();
     }
   }, [draw, ensureGraph, running, start]);
@@ -364,7 +397,7 @@ export function AudioReactive({ className }: { className?: string }) {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="A radial spectrum: bars around a pulsing core, each one the level of a frequency band in the audio being analysed."
+        aria-label="Espectro radial: barras ao redor de um núcleo pulsante, cada uma com o nível de uma faixa de frequência do áudio analisado."
         className="h-full w-full"
       />
 
@@ -375,9 +408,9 @@ export function AudioReactive({ className }: { className?: string }) {
               Web Audio · FFT
             </p>
             <p className="mx-auto mt-4 max-w-sm text-pretty text-muted-foreground">
-              Browsers only start audio after a gesture. Press play for a
-              synthesised source — no file, no permission — or hand it your
-              microphone.
+              Navegadores só iniciam áudio depois de um gesto. Aperte play para
+              uma fonte sintetizada — sem arquivo, sem permissão — ou empreste o
+              seu microfone.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <button
@@ -386,7 +419,7 @@ export function AudioReactive({ className }: { className?: string }) {
                 className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <Play className="h-4 w-4" />
-                Start listening
+                Começar a escutar
               </button>
               <button
                 type="button"
@@ -394,7 +427,7 @@ export function AudioReactive({ className }: { className?: string }) {
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm text-muted-foreground ring-1 ring-border-strong transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <Mic className="h-4 w-4" />
-                Use microphone
+                Usar microfone
               </button>
             </div>
           </div>
@@ -405,7 +438,7 @@ export function AudioReactive({ className }: { className?: string }) {
         <div className="pointer-events-none absolute inset-x-4 top-4 flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border backdrop-blur-md">
             <Waves className="h-3.5 w-3.5 text-accent" />
-            {source === "mic" ? "Microphone" : "Synthesised"}
+            {source === "mic" ? "Microfone" : "Sintetizado"}
           </span>
           <span className="pointer-events-auto flex items-center gap-2">
             {source === "synth" && (
@@ -415,7 +448,7 @@ export function AudioReactive({ className }: { className?: string }) {
                 className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border backdrop-blur-md transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <Mic className="h-3.5 w-3.5" />
-                Microphone
+                Microfone
               </button>
             )}
             <button
@@ -424,7 +457,7 @@ export function AudioReactive({ className }: { className?: string }) {
               className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border backdrop-blur-md transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <Square className="h-3.5 w-3.5" />
-              Stop
+              Parar
             </button>
           </span>
         </div>
@@ -446,7 +479,7 @@ export function AudioReactive({ className }: { className?: string }) {
           !running && "opacity-0",
         )}
       >
-        bass 000 · mid 000 · treble 000
+        grave 000 · médio 000 · agudo 000
       </span>
     </div>
   );

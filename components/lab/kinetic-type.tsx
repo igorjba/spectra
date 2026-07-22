@@ -5,32 +5,44 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /*
-  Kinetic type. Variable font axes are continuous, not a set of weights, so
-  every glyph can sit anywhere in the design space at once. Each character
-  carries its own energy — driven by the pointer's proximity, with a slow wave
-  travelling through the line when nobody is touching it — and that energy is
-  mapped onto wght, wdth and opsz.
+  Tipografia cinética. Os eixos de uma fonte variável são contínuos, não um
+  conjunto de pesos, então cada glifo pode ocupar qualquer ponto do espaço de
+  design. Cada caractere carrega a própria energia — vinda da proximidade do
+  ponteiro, com uma onda lenta atravessando a linha quando ninguém está por
+  perto — e essa energia é mapeada em wght, wdth e opsz.
 
-  Changing font-variation-settings relayouts text, so the loop is careful:
-  glyph centres are measured once (and on resize) rather than per frame, the
-  pointer only records a position, and a single rAF writes CSS custom
-  properties with an eased value per glyph.
+  A onda não é eterna: passado um tempo sem ponteiro, a amplitude decai até
+  zero e os glifos convergem para um estado de repouso legível. Quando todos
+  chegam lá, o rAF é encerrado — o texto para de fato, e não apenas
+  visualmente. Qualquer movimento do ponteiro acorda a linha de novo.
+
+  Mudar font-variation-settings força relayout, então o loop é cuidadoso: os
+  centros dos glifos são medidos uma vez (e em resize), nunca por quadro; o
+  ponteiro só registra uma posição; e um único rAF escreve uma custom property
+  suavizada por glifo.
 */
 
-const LINES = ["Type that", "breathes."];
+const LINES = ["Tipografia", "que respira", "e assenta."];
 
-// Roboto Flex ranges, kept inside the comfortable part of each axis.
+// Faixas da Roboto Flex, mantidas na parte confortável de cada eixo.
 const WGHT = { min: 200, max: 900 };
 const WDTH = { min: 64, max: 140 };
 const OPSZ = { min: 14, max: 144 };
 
-const RADIUS = 190; // px of pointer influence
-const IDLE_AMPLITUDE = 0.4;
+const RADIUS = 220; // px de influência do ponteiro
+const IDLE_AMPLITUDE = 0.42;
 const EASE = 0.16;
+
+/** Estado final: peso de leitura para onde a linha converge ao assentar. */
+const REST_ENERGY = 0.3;
+const SETTLE_DELAY = 3.5; // s de calmaria antes de começar a assentar
+const SETTLE_FADE = 7; // s até a onda desaparecer por completo
+const STILL_EPSILON = 0.0015;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const mix = (range: { min: number; max: number }, t: number) =>
   range.min + (range.max - range.min) * t;
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 export function KineticType({
   className,
@@ -55,11 +67,11 @@ export function KineticType({
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    // Energy per glyph, eased toward its target each frame.
+    // Energia por glifo, suavizada em direção ao alvo a cada quadro.
     const energy = new Float32Array(glyphs.length);
     const centres = glyphs.map(() => ({ x: 0, y: 0 }));
 
-    // Layout is measured here, never inside the animation loop.
+    // O layout é medido aqui, nunca dentro do loop de animação.
     const measure = () => {
       for (let i = 0; i < glyphs.length; i++) {
         const rect = glyphs[i]!.getBoundingClientRect();
@@ -77,18 +89,107 @@ export function KineticType({
       el.style.setProperty("--opsz", mix(OPSZ, t).toFixed(0));
     };
 
+    const writeReadout = (t: number, settled: boolean) => {
+      const readout = readoutRef.current;
+      if (!readout) return;
+      const axes = `wght ${mix(WGHT, t).toFixed(0)}  ·  wdth ${mix(
+        WDTH,
+        t,
+      ).toFixed(0)}  ·  opsz ${mix(OPSZ, t).toFixed(0)}`;
+      readout.textContent = settled ? `${axes}  ·  assentado` : axes;
+    };
+
     if (reduceMotion) {
-      // A settled, readable state — no wave, no pointer tracking.
-      glyphs.forEach((_, i) => apply(i, 0.45));
+      // Um estado assentado e legível — sem onda, sem rastreio de ponteiro.
+      glyphs.forEach((_, i) => apply(i, REST_ENERGY));
+      writeReadout(REST_ENERGY, true);
       return;
     }
 
     measure();
 
     const pointer = { x: -9999, y: -9999 };
+    let lastActivity = performance.now();
+    let raf = 0;
+    let visible = true;
+    let stopped = false; // a linha assentou; nada resta para animar
+
+    const start = performance.now();
+
+    const frame = (now: number) => {
+      const time = (now - start) / 1000;
+
+      // 1 enquanto a linha está viva, 0 quando a onda terminou de sumir.
+      const idleFor = (now - lastActivity) / 1000;
+      const settle =
+        1 - smoothstep(Math.min(Math.max((idleFor - SETTLE_DELAY) / SETTLE_FADE, 0), 1));
+
+      let peak = 0;
+      let peakIndex = 0;
+      let moving = false;
+
+      for (let i = 0; i < glyphs.length; i++) {
+        // A onda lenta mantém a linha viva enquanto o ponteiro está longe, e
+        // perde amplitude conforme a cena assenta.
+        const wave =
+          (0.5 + 0.5 * Math.sin(time * 1.15 - i * 0.42)) *
+          IDLE_AMPLITUDE *
+          settle;
+
+        const c = centres[i]!;
+        const dx = pointer.x - c.x;
+        const dy = pointer.y - c.y;
+        const d2 = (dx * dx + dy * dy) / (RADIUS * RADIUS);
+        const proximity = Math.exp(-d2);
+
+        const target = Math.max(wave, proximity, REST_ENERGY * (1 - settle));
+        if (Math.abs(target - energy[i]!) > STILL_EPSILON) moving = true;
+
+        energy[i] = lerp(energy[i]!, target, EASE);
+        apply(i, energy[i]!);
+
+        if (energy[i]! > peak) {
+          peak = energy[i]!;
+          peakIndex = i;
+        }
+      }
+
+      const restingNow = settle === 0 && !moving;
+      writeReadout(energy[peakIndex]!, restingNow);
+
+      if (restingNow) {
+        // Nada mais muda: encerra o loop em vez de queimar quadros idênticos.
+        stopped = true;
+        return;
+      }
+
+      raf = requestAnimationFrame(frame);
+    };
+
+    /*
+      Único ponto de agendamento. Cancelar antes de agendar é o que garante um
+      loop só: o IntersectionObserver dispara assim que observa, e sem isso ele
+      abriria um segundo laço em paralelo com o inicial — dobrando as escritas
+      de font-variation-settings e o passo do easing.
+    */
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(frame);
+    };
+
+    /** Qualquer movimento reinicia a contagem e, se preciso, religa o loop. */
+    const wake = () => {
+      lastActivity = performance.now();
+      if (stopped && visible && !document.hidden) {
+        stopped = false;
+        schedule();
+      }
+    };
+
     const onPointerMove = (e: PointerEvent) => {
       pointer.x = e.clientX;
       pointer.y = e.clientY;
+      wake();
     };
     const onPointerLeave = () => {
       pointer.x = -9999;
@@ -102,59 +203,13 @@ export function KineticType({
     window.addEventListener("resize", onScrollOrResize);
     window.addEventListener("scroll", onScrollOrResize, { passive: true });
 
-    let raf = 0;
-    let running = true;
-    const start = performance.now();
-
-    const frame = (now: number) => {
-      if (!running) return;
-      const time = (now - start) / 1000;
-
-      let peak = 0;
-      let peakIndex = 0;
-
-      for (let i = 0; i < glyphs.length; i++) {
-        // A slow wave keeps the line alive when the pointer is away.
-        const wave =
-          (0.5 + 0.5 * Math.sin(time * 1.15 - i * 0.42)) * IDLE_AMPLITUDE;
-
-        const c = centres[i]!;
-        const dx = pointer.x - c.x;
-        const dy = pointer.y - c.y;
-        const d2 = (dx * dx + dy * dy) / (RADIUS * RADIUS);
-        const proximity = Math.exp(-d2);
-
-        const target = Math.max(wave, proximity);
-        energy[i] = lerp(energy[i]!, target, EASE);
-        apply(i, energy[i]!);
-
-        if (energy[i]! > peak) {
-          peak = energy[i]!;
-          peakIndex = i;
-        }
-      }
-
-      const readout = readoutRef.current;
-      if (readout) {
-        const t = energy[peakIndex]!;
-        readout.textContent = `wght ${mix(WGHT, t).toFixed(0)}  ·  wdth ${mix(
-          WDTH,
-          t,
-        ).toFixed(0)}  ·  opsz ${mix(OPSZ, t).toFixed(0)}`;
-      }
-
-      raf = requestAnimationFrame(frame);
-    };
-
     const io = new IntersectionObserver(
       ([entry]) => {
-        const visible = entry?.isIntersecting ?? true;
-        if (visible && !running) {
-          running = true;
+        visible = entry?.isIntersecting ?? true;
+        if (visible) {
           measure();
-          raf = requestAnimationFrame(frame);
-        } else if (!visible) {
-          running = false;
+          if (!stopped) schedule();
+        } else {
           cancelAnimationFrame(raf);
         }
       },
@@ -164,20 +219,17 @@ export function KineticType({
 
     const onVisibility = () => {
       if (document.hidden) {
-        running = false;
         cancelAnimationFrame(raf);
-      } else {
-        running = true;
+      } else if (!stopped && visible) {
         measure();
-        raf = requestAnimationFrame(frame);
+        schedule();
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
-    raf = requestAnimationFrame(frame);
+    schedule();
 
     return () => {
-      running = false;
       cancelAnimationFrame(raf);
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
@@ -210,8 +262,9 @@ export function KineticType({
                 <span
                   key={`${char}-${i}`}
                   data-glyph=""
-                  className="inline-block will-change-[font-variation-settings] [font-variation-settings:'wght'_var(--wght,400),'wdth'_var(--wdth,100),'opsz'_var(--opsz,32)] text-[clamp(2.75rem,10vw,7rem)] leading-[1.05] tracking-[-0.02em] text-foreground"
+                  className="inline-block will-change-[font-variation-settings] [font-variation-settings:'wght'_var(--wght,400),'wdth'_var(--wdth,100),'opsz'_var(--opsz,32)] text-[clamp(2.5rem,11vw,9rem)] leading-[1.02] tracking-[-0.03em] text-foreground"
                 >
+                  {/* espaço rígido: um espaço comum colapsa entre inline-blocks */}
                   {char === " " ? " " : char}
                 </span>
               );
@@ -222,7 +275,7 @@ export function KineticType({
 
       <span
         ref={readoutRef}
-        className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-faint"
+        className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-faint"
       >
         wght 200 · wdth 64 · opsz 14
       </span>

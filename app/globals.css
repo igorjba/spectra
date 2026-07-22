@@ -23,7 +23,8 @@
   --foreground: oklch(0.97 0.006 274);
   --muted: oklch(0.262 0.015 274);
   --muted-foreground: oklch(0.705 0.02 274);
-  --faint: oklch(0.5 0.018 274);
+  /* Piso do --faint é o contraste: 4.5:1 sobre --background em texto pequeno. */
+  --faint: oklch(0.63 0.02 274);
 
   --border: oklch(0.98 0 0 / 0.09);
   --border-strong: oklch(0.98 0 0 / 0.17);
@@ -65,7 +66,7 @@
   --foreground: oklch(0.19 0.014 274);
   --muted: oklch(0.945 0.006 274);
   --muted-foreground: oklch(0.46 0.016 274);
-  --faint: oklch(0.62 0.018 274);
+  --faint: oklch(0.52 0.018 274);
 
   --border: oklch(0.19 0.014 274 / 0.1);
   --border-strong: oklch(0.19 0.014 274 / 0.2);
@@ -77,9 +78,9 @@
   --accent-muted: oklch(0.53 0.2 286 / 0.1);
   --ring: oklch(0.53 0.2 286);
 
-  --success: oklch(0.56 0.16 158);
-  --warning: oklch(0.68 0.15 75);
-  --danger: oklch(0.58 0.22 25);
+  --success: oklch(0.5 0.14 158);
+  --warning: oklch(0.55 0.13 75);
+  --danger: oklch(0.53 0.21 25);
 
   --spectra-1: oklch(0.62 0.21 25);
   --spectra-2: oklch(0.74 0.16 78);
@@ -358,5 +359,123 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/*
+  Miniaturas do catálogo. Cada técnica tem um gesto próprio, que só roda
+  enquanto o ponteiro está sobre o cartão — nada anima em repouso, então a
+  grade inteira fica parada até ser tocada.
+*/
+@keyframes card-spin {
+  from {
+    transform: rotate(0deg) scale(1.05);
+  }
+  to {
+    transform: rotate(360deg) scale(1.05);
+  }
+}
+
+@keyframes card-orbit {
+  0% {
+    transform: translate(-22%, -22%);
+  }
+  50% {
+    transform: translate(26%, 14%);
+  }
+  100% {
+    transform: translate(-22%, -22%);
+  }
+}
+
+@keyframes card-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -64;
+  }
+}
+
+@keyframes card-swell {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-14%) scaleY(1.35);
+  }
+}
+
+@keyframes card-drop {
+  0% {
+    transform: translateY(-190%);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  45% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  62% {
+    transform: translateY(-42%);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  78% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  89% {
+    transform: translateY(-14%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-pop {
+  0% {
+    opacity: 0.16;
+    transform: scale(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.16;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes card-parallax {
+  from {
+    transform: translateX(-52%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes card-weight {
+  0%,
+  100% {
+    font-variation-settings: "wght" 300;
+    letter-spacing: 0.08em;
+    transform: scaleX(0.9);
+  }
+  50% {
+    font-variation-settings: "wght" 900;
+    letter-spacing: -0.04em;
+    transform: scaleX(1.12);
+  }
+}
+
+@keyframes card-level {
+  0%,
+  100% {
+    transform: scaleY(0.18);
+  }
+  50% {
+    transform: scaleY(1);
   }
 }

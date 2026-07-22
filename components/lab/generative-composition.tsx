@@ -141,7 +141,7 @@ export function GenerativeComposition({ className }: { className?: string }) {
         viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
         preserveAspectRatio="xMidYMid slice"
         role="img"
-        aria-label={`Generative composition built from seed ${seed}: geometric modules laid out by recursive subdivision.`}
+        aria-label={`Composição generativa a partir da semente ${seed}: módulos geométricos dispostos por subdivisão recursiva.`}
         className="h-full w-full"
       >
         {/* Keyed by seed so a new seed remounts the modules and replays the reveal. */}
@@ -176,7 +176,7 @@ export function GenerativeComposition({ className }: { className?: string }) {
             htmlFor={inputId}
             className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-faint"
           >
-            Seed
+            Semente
           </label>
           <input
             id={inputId}
@@ -185,8 +185,11 @@ export function GenerativeComposition({ className }: { className?: string }) {
             onBlur={applyDraft}
             spellCheck={false}
             autoComplete="off"
+            /* A semente é hasheada caractere a caractere; um colar gigante só
+               travaria a própria aba, mas não há razão para aceitar um. */
+            maxLength={64}
             className="w-24 bg-transparent font-mono text-sm text-foreground outline-none placeholder:text-faint"
-            placeholder="any text"
+            placeholder="qualquer texto"
           />
         </form>
 
@@ -196,7 +199,7 @@ export function GenerativeComposition({ className }: { className?: string }) {
           className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-background/70 px-3.5 py-2 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border backdrop-blur-md transition-colors hover:text-foreground hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Dices className="h-3.5 w-3.5 text-accent" />
-          Regenerate
+          Regenerar
         </button>
       </div>
     </div>
