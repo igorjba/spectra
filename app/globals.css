@@ -313,6 +313,26 @@
   }
 }
 
+/* Generative modules draw themselves in sequence; static when motion is off. */
+@keyframes gen-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gen-module {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: gen-in 0.5s var(--ease-out-quart) both;
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: -200% 0;

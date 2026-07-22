@@ -63,7 +63,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "Layouts drawn by rule, not by hand. Every reload seeds a new composition from the same algorithm — deterministic, reproducible art.",
     technique: "Seeded RNG · procedural layout",
-    status: "planned",
+    status: "live",
+    href: "/lab/generative",
   },
   {
     slug: "cinematic-scroll",
