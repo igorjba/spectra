@@ -53,7 +53,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "Interface elements with mass. Verlet integration drives gravity, springs, and collision — grab them, throw them, watch them settle.",
     technique: "Verlet integration · constraints",
-    status: "planned",
+    status: "live",
+    href: "/lab/verlet",
   },
   {
     slug: "generative",
