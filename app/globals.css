@@ -285,6 +285,34 @@
   }
 }
 
+/*
+  Scroll-driven reveal. Progressive enhancement: content is visible by default,
+  and only hides-to-animate where the browser supports scroll timelines and the
+  user hasn't asked for reduced motion. No JS, no observers — degrades to plain
+  visible content everywhere else.
+*/
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      opacity: 0;
+      animation: reveal-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 26%;
+    }
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: -200% 0;

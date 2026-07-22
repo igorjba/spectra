@@ -16,7 +16,7 @@ export function Hero() {
       <div className="absolute inset-0 -z-10">
         <SpectraField />
         {/* Legibility scrim: strongest at the edges where text sits. */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-background/20" />
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/45 to-background/20" />
         <div className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_50%,transparent_30%,var(--background)_100%)] opacity-70" />
       </div>
 

@@ -1,4 +1,4 @@
-import { Reveal, RevealGroup } from "@/components/ui/reveal";
+import { Reveal } from "@/components/ui/reveal";
 
 const LAYERS = [
   {
@@ -42,9 +42,9 @@ export function Approach() {
           </p>
         </Reveal>
 
-        <RevealGroup className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+        <Reveal className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
           {LAYERS.map((layer) => (
-            <Reveal
+            <div
               key={layer.index}
               className="group flex flex-col bg-card p-8 transition-colors duration-300 hover:bg-elevated"
             >
@@ -62,10 +62,10 @@ export function Approach() {
               <p className="mt-4 text-[0.95rem] leading-relaxed text-muted-foreground">
                 {layer.body}
               </p>
-              <div className="mt-8 h-px w-full origin-left scale-x-100 bg-gradient-to-r from-accent to-transparent opacity-30 transition-opacity duration-300 group-hover:opacity-100" />
-            </Reveal>
+              <div className="mt-8 h-px w-full origin-left scale-x-100 bg-linear-to-r from-accent to-transparent opacity-30 transition-opacity duration-300 group-hover:opacity-100" />
+            </div>
           ))}
-        </RevealGroup>
+        </Reveal>
       </div>
     </section>
   );

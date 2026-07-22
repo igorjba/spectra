@@ -1,49 +1,46 @@
-"use client";
+import { cn } from "@/lib/utils";
 
-import { motion, type HTMLMotionProps } from "motion/react";
+type RevealTag =
+  | "div"
+  | "section"
+  | "article"
+  | "ul"
+  | "ol"
+  | "li"
+  | "span";
 
-import { fadeUp, inView, stagger } from "@/lib/motion";
-
-type RevealTag = "div" | "section" | "article" | "ul" | "ol" | "li" | "span";
-
-type RevealProps = HTMLMotionProps<"div"> & {
+type RevealProps = React.HTMLAttributes<HTMLElement> & {
   as?: RevealTag;
 };
 
-/** Fade + rise once on scroll into view. Respects reduced motion via CSS. */
-export function Reveal({ as = "div", children, ...props }: RevealProps) {
-  const Comp = motion[as] as React.ElementType;
+/**
+ * Scroll-driven entrance. The animation lives in CSS (`.reveal` in globals.css)
+ * via `animation-timeline: view()`, so it needs no JS and the content stays
+ * visible where scroll timelines or motion aren't available.
+ */
+export function Reveal({ as = "div", className, children, ...props }: RevealProps) {
+  const Tag = as as React.ElementType;
   return (
-    <Comp
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="visible"
-      viewport={inView}
-      {...props}
-    >
+    <Tag className={cn("reveal", className)} {...props}>
       {children}
-    </Comp>
+    </Tag>
   );
 }
 
-/** Staggered container — direct Reveal children animate in sequence. */
+/**
+ * Container for a set of reveals. Each child animates as it enters the
+ * viewport, which reads as a natural stagger without any coordination.
+ */
 export function RevealGroup({
   as = "div",
-  gap = 0.08,
-  delay = 0,
+  className,
   children,
   ...props
-}: RevealProps & { gap?: number; delay?: number }) {
-  const Comp = motion[as] as React.ElementType;
+}: RevealProps) {
+  const Tag = as as React.ElementType;
   return (
-    <Comp
-      variants={stagger(gap, delay)}
-      initial="hidden"
-      whileInView="visible"
-      viewport={inView}
-      {...props}
-    >
+    <Tag className={className} {...props}>
       {children}
-    </Comp>
+    </Tag>
   );
 }

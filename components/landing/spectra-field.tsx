@@ -56,13 +56,19 @@ float fbm(vec2 p) {
   return v;
 }
 
-// Cosine gradient palette tuned toward the brand's cool spectral arc.
+// Cool, on-brand ramp: blue -> iris -> magenta -> teal, cyclic. Kept off the
+// green/amber wedge so the field reads spectral rather than thermal.
 vec3 palette(float t) {
-  vec3 a = vec3(0.5, 0.5, 0.52);
-  vec3 b = vec3(0.5, 0.48, 0.5);
-  vec3 c = vec3(1.0, 1.0, 1.0);
-  vec3 d = vec3(0.15, 0.42, 0.72);
-  return a + b * cos(6.28318 * (c * t + d));
+  const vec3 blue = vec3(0.16, 0.42, 0.86);
+  const vec3 iris = vec3(0.46, 0.32, 0.92);
+  const vec3 magenta = vec3(0.88, 0.32, 0.70);
+  const vec3 teal = vec3(0.18, 0.6, 0.72);
+  float s = fract(t) * 4.0;
+  vec3 col = mix(blue, iris, smoothstep(0.0, 1.0, s));
+  col = mix(col, magenta, smoothstep(1.0, 2.0, s));
+  col = mix(col, teal, smoothstep(2.0, 3.0, s));
+  col = mix(col, blue, smoothstep(3.0, 4.0, s));
+  return col;
 }
 
 void main() {
