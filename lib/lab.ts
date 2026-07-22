@@ -93,7 +93,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "The interface listens. An FFT of live audio drives layout, color, and motion — the screen pulses and reorganizes to sound.",
     technique: "Web Audio · FFT · analysis",
-    status: "planned",
+    status: "live",
+    href: "/lab/audio-reactive",
   },
 ];
 
