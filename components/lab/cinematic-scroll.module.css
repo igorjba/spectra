@@ -1,0 +1,218 @@
+/*
+  Cinematic scroll.
+
+  Each act declares a named view-timeline on its scroll track; the elements
+  inside the pinned scene attach to that timeline, so their progress *is* the
+  scroll's progress — scrubbed rather than timed, and driven on the compositor
+  instead of a scroll listener.
+
+  Progressive enhancement: everything is authored in its final, visible state.
+  The animations only attach where scroll timelines exist and motion is welcome,
+  so unsupported browsers get a readable, static narrative.
+*/
+
+.track {
+  position: relative;
+}
+
+/* Track height is the act's duration. */
+.act1 {
+  height: 240vh;
+}
+.act2 {
+  height: 320vh;
+}
+.act3 {
+  height: 260vh;
+}
+
+.scene {
+  position: sticky;
+  top: 0;
+  display: grid;
+  place-items: center;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .act1 {
+      view-timeline-name: --act1;
+    }
+    .act2 {
+      view-timeline-name: --act2;
+    }
+    .act3 {
+      view-timeline-name: --act3;
+    }
+
+    /*
+      Ranges are expressed in `contain`, not `cover`: for a track taller than
+      the viewport, the contain phase is exactly the window where the track
+      covers the viewport — which is precisely when the scene is pinned. That
+      keeps every beat inside the pin regardless of viewport height.
+    */
+
+    /* Act 1 — parallax depth. Each layer travels a different distance. */
+    .far,
+    .mid,
+    .near {
+      animation: linear both;
+      animation-timeline: --act1;
+      animation-range: contain 0% contain 100%;
+    }
+    .far {
+      animation-name: depth-far;
+    }
+    .mid {
+      animation-name: depth-mid;
+    }
+    .near {
+      animation-name: depth-near;
+    }
+    .title1 {
+      animation: title-arc linear both;
+      animation-timeline: --act1;
+      animation-range: contain 0% contain 100%;
+    }
+
+    /* Act 2 — the scrubbed act. */
+    .draw {
+      animation: draw-path linear both;
+      animation-timeline: --act2;
+      animation-range: contain 6% contain 78%;
+    }
+    .word {
+      animation: word-in linear both;
+      animation-timeline: --act2;
+      animation-range: contain var(--from, 20%) contain var(--to, 30%);
+    }
+    .meter {
+      animation: meter-fill linear both;
+      animation-timeline: --act2;
+      animation-range: contain 2% contain 98%;
+      transform-origin: left center;
+    }
+
+    /* Act 3 — the pieces converge. */
+    .shard {
+      animation: assemble linear both;
+      animation-timeline: --act3;
+      animation-range: contain var(--from, 5%) contain var(--to, 50%);
+    }
+    .title3 {
+      animation: fade-rise linear both;
+      animation-timeline: --act3;
+      animation-range: contain 58% contain 88%;
+    }
+  }
+}
+
+@keyframes depth-far {
+  from {
+    transform: translate3d(0, 7%, 0) scale(1.14);
+  }
+  to {
+    transform: translate3d(0, -7%, 0) scale(1);
+  }
+}
+
+@keyframes depth-mid {
+  from {
+    transform: translate3d(0, 24%, 0);
+  }
+  to {
+    transform: translate3d(0, -24%, 0);
+  }
+}
+
+@keyframes depth-near {
+  from {
+    transform: translate3d(0, 48%, 0);
+  }
+  to {
+    transform: translate3d(0, -48%, 0);
+  }
+}
+
+@keyframes title-arc {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 2rem, 0);
+  }
+  26%,
+  72% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -1.5rem, 0);
+  }
+}
+
+@keyframes draw-path {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0.14;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes meter-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Shards are centred on their anchor point, so the -50% offset is preserved
+   through the whole travel. */
+@keyframes assemble {
+  from {
+    opacity: 0;
+    transform: translate3d(
+        calc(-50% + var(--tx, 0px)),
+        calc(-50% + var(--ty, 0px)),
+        0
+      )
+      rotate(var(--rot, 0deg)) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.5rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

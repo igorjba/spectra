@@ -11,11 +11,17 @@ export function LabPieceShell({
   entry,
   interactionHint,
   notes,
+  /**
+   * "framed" drops the piece into a fixed aspect stage. "flow" hands it the
+   * page instead, for pieces that need their own scroll length.
+   */
+  stage = "framed",
   children,
 }: {
   entry: LabEntry;
   interactionHint: string;
   notes: Note[];
+  stage?: "framed" | "flow";
   children: React.ReactNode;
 }) {
   const neighbors = labNeighbors(entry.slug);
@@ -55,21 +61,36 @@ export function LabPieceShell({
       </header>
 
       {/* Stage — the technique itself, running live. */}
-      <div className="mx-auto mt-10 max-w-6xl px-6">
-        <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-border-strong bg-background-subtle sm:aspect-video">
-          {children}
+      {stage === "framed" ? (
+        <div className="mx-auto mt-10 max-w-6xl px-6">
+          <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-border-strong bg-background-subtle sm:aspect-video">
+            {children}
 
-          <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-background/60 px-3 py-1.5 font-mono text-[0.7rem] text-muted-foreground ring-1 ring-border backdrop-blur-md">
+            <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full bg-background/60 px-3 py-1.5 font-mono text-[0.7rem] text-muted-foreground ring-1 ring-border backdrop-blur-md">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+                {interactionHint}
+              </span>
+              <span className="hidden rounded-full bg-background/60 px-3 py-1.5 font-mono text-[0.7rem] text-faint ring-1 ring-border backdrop-blur-md sm:inline-block">
+                {entry.technique}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6">
+            <span className="inline-flex items-center gap-2 rounded-full bg-elevated px-3 py-1.5 font-mono text-[0.7rem] text-muted-foreground ring-1 ring-border">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
               {interactionHint}
             </span>
-            <span className="hidden rounded-full bg-background/60 px-3 py-1.5 font-mono text-[0.7rem] text-faint ring-1 ring-border backdrop-blur-md sm:inline-block">
+            <span className="rounded-full px-3 py-1.5 font-mono text-[0.7rem] text-faint ring-1 ring-border">
               {entry.technique}
             </span>
           </div>
-        </div>
-      </div>
+          <div className="mt-8">{children}</div>
+        </>
+      )}
 
       {/* Notes — the honest technical account of what runs. */}
       <section className="mx-auto mt-24 max-w-6xl px-6">

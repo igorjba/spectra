@@ -73,7 +73,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "A narrative that assembles as you scroll — pinned scenes, scrubbed timelines, and depth that resolves like a title sequence.",
     technique: "Scroll-linked timelines · parallax",
-    status: "planned",
+    status: "live",
+    href: "/lab/cinematic-scroll",
   },
   {
     slug: "kinetic-type",
