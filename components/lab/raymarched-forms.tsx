@@ -45,11 +45,12 @@ float smin(float a, float b, float k) {
 }
 
 float map(vec3 p) {
-  p.xz *= rot(u_time * 0.24);
-  p.xy *= rot(u_time * 0.17);
-  float s = sdSphere(p - vec3(1.15 * sin(u_time * 0.6), 0.0, 0.0), 0.72);
-  float b = sdRoundBox(p + vec3(0.0, 1.0 * sin(u_time * 0.5), 0.0), vec3(0.5), 0.08);
-  float t = sdTorus(p, vec2(1.35, 0.3));
+  // Slow idle spin on a single axis so the body has life without fighting
+  // the pointer for control.
+  p.xz *= rot(u_time * 0.1);
+  float s = sdSphere(p - vec3(0.85 * sin(u_time * 0.38), 0.0, 0.0), 0.72);
+  float b = sdRoundBox(p + vec3(0.0, 0.5 * sin(u_time * 0.3), 0.0), vec3(0.5), 0.08);
+  float t = sdTorus(p, vec2(1.3, 0.3));
   float d = smin(s, b, 0.6);
   d = smin(d, t, 0.5);
   return d;
@@ -104,12 +105,16 @@ vec3 palette(float t) {
 
 void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
-  vec2 m = u_mouse / u_res;
+  vec2 off = u_mouse / u_res - 0.5;
 
-  // Camera orbit: pointer plus a slow auto-drift so it lives when idle.
-  float yaw = (m.x - 0.5) * 2.3 + u_time * 0.08;
-  float pitch = clamp((m.y - 0.5) * 1.2, -0.9, 0.9) + 0.12;
-  float radius = 4.3;
+  // Camera follows the cursor: move right and the body turns to follow, move
+  // up and you look down onto it. Bounded and drift-free so the pointer is
+  // clearly in control.
+  float yaw = -off.x * 1.8;
+  // Keep the camera above the equator so the body always reads as a disc seen
+  // from a flattering three-quarter angle, never edge-on.
+  float pitch = clamp(off.y * 1.0 + 0.5, 0.22, 1.15);
+  float radius = 4.8;
   vec3 ro = radius * vec3(
     sin(yaw) * cos(pitch),
     sin(pitch),
