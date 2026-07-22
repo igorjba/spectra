@@ -43,7 +43,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "A GPU fluid solver: advection, diffusion, and pressure projection over a velocity field you can push with your cursor.",
     technique: "Navier–Stokes · FBO ping-pong",
-    status: "building",
+    status: "live",
+    href: "/lab/fluid",
   },
   {
     slug: "verlet",
