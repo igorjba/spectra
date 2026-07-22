@@ -225,8 +225,10 @@ export function ShaderCanvas({
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("pointerleave", onLeave);
+      // Delete resources but keep the context alive: React StrictMode remounts
+      // this effect on the same canvas, and a lost context can't recompile.
+      gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [fragmentShader, dprCap, idleActive]);
 
