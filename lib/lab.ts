@@ -83,7 +83,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "Variable fonts that breathe. Weight, width, and optical size respond to motion and input; text deforms and reflows without breaking.",
     technique: "Variable fonts · axis animation",
-    status: "planned",
+    status: "live",
+    href: "/lab/kinetic-type",
   },
   {
     slug: "audio-reactive",
