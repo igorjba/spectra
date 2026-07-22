@@ -7,6 +7,8 @@ export type LabEntry = {
   summary: string;
   technique: string;
   status: LabStatus;
+  /** Set once a technique has its own page. */
+  href?: string;
 };
 
 /**
@@ -31,7 +33,8 @@ export const LAB_ENTRIES: LabEntry[] = [
     summary:
       "Signed-distance geometry marched per pixel — 3D shapes that exist only as a distance function, lit and shaded on the GPU.",
     technique: "Raymarching · SDF · lighting",
-    status: "building",
+    status: "live",
+    href: "/lab/raymarched-forms",
   },
   {
     slug: "fluid",
@@ -94,3 +97,21 @@ export const labStatusLabel: Record<LabStatus, string> = {
   building: "In progress",
   planned: "On the path",
 };
+
+export function getLabEntry(slug: string): LabEntry | undefined {
+  return LAB_ENTRIES.find((entry) => entry.slug === slug);
+}
+
+/** Previous and next entries in catalog order, wrapping around the ends. */
+export function labNeighbors(slug: string): {
+  prev: LabEntry;
+  next: LabEntry;
+} | null {
+  const i = LAB_ENTRIES.findIndex((entry) => entry.slug === slug);
+  if (i === -1) return null;
+  const count = LAB_ENTRIES.length;
+  return {
+    prev: LAB_ENTRIES[(i - 1 + count) % count]!,
+    next: LAB_ENTRIES[(i + 1) % count]!,
+  };
+}

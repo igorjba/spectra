@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
-import { LAB_ENTRIES } from "@/lib/lab";
+import { type LabEntry, LAB_ENTRIES } from "@/lib/lab";
 import { cn } from "@/lib/utils";
 import { Reveal, RevealGroup } from "@/components/ui/reveal";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -36,47 +37,63 @@ export function LabField() {
           as="ul"
           className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {LAB_ENTRIES.map((entry) => {
-            const isLive = entry.status === "live";
-            return (
-              <Reveal
-                key={entry.slug}
-                as="li"
-                className={cn(
-                  "group relative flex list-none flex-col overflow-hidden rounded-2xl border p-6 transition-all duration-300",
-                  isLive
-                    ? "border-border-strong bg-card hover:-translate-y-1 hover:border-accent/60"
-                    : "border-border bg-card/60 hover:border-border-strong",
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -right-2 -top-4 font-display text-[5rem] font-bold leading-none text-foreground/[0.04] transition-colors duration-300 group-hover:text-foreground/[0.07]"
-                >
-                  {entry.index}
-                </span>
-
-                <div className="flex items-center justify-between">
-                  <StatusBadge status={entry.status} />
-                  {isLive && (
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />
-                  )}
-                </div>
-
-                <h3 className="mt-10 font-display text-xl font-semibold text-foreground">
-                  {entry.title}
-                </h3>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {entry.summary}
-                </p>
-                <p className="mt-6 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
-                  {entry.technique}
-                </p>
-              </Reveal>
-            );
-          })}
+          {LAB_ENTRIES.map((entry) => (
+            <Reveal key={entry.slug} as="li" className="list-none">
+              <LabCard entry={entry} />
+            </Reveal>
+          ))}
         </RevealGroup>
       </div>
     </section>
   );
+}
+
+function LabCard({ entry }: { entry: LabEntry }) {
+  const isLive = entry.status === "live";
+  const clickable = Boolean(entry.href);
+
+  const cardClass = cn(
+    "group relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 transition-all duration-300",
+    isLive
+      ? "border-border-strong bg-card hover:-translate-y-1 hover:border-accent/60"
+      : "border-border bg-card/60 hover:border-border-strong",
+  );
+
+  const body = (
+    <>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-2 -top-4 font-display text-[5rem] font-bold leading-none text-foreground/[0.04] transition-colors duration-300 group-hover:text-foreground/[0.07]"
+      >
+        {entry.index}
+      </span>
+
+      <div className="flex items-center justify-between">
+        <StatusBadge status={entry.status} />
+        {clickable && (
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />
+        )}
+      </div>
+
+      <h3 className="mt-10 font-display text-xl font-semibold text-foreground">
+        {entry.title}
+      </h3>
+      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+        {entry.summary}
+      </p>
+      <p className="mt-6 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-faint">
+        {entry.technique}
+      </p>
+    </>
+  );
+
+  if (clickable && entry.href) {
+    return (
+      <Link href={entry.href} className={cardClass}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={cardClass}>{body}</div>;
 }

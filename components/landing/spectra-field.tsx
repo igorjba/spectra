@@ -1,19 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-import { useTheme } from "@/components/theme/theme-provider";
+import { ShaderCanvas } from "@/components/gl/shader-canvas";
 import { cn } from "@/lib/utils";
 
-const VERT = /* glsl */ `#version 300 es
-in vec2 a_pos;
-void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
-`;
-
 /*
-  Spectral field. A single full-screen fragment shader: fractal-noise domain
-  warping (Inigo Quilez's technique) colored through a cosine palette, with a
-  pointer-driven attractor that warps and brightens the field near the cursor.
+  Spectral field. Fractal-noise domain warping (Inigo Quilez's technique)
+  colored through a cool cosine-style ramp, with a pointer-driven attractor
+  that warps and brightens the field near the cursor.
 */
 const FRAG = /* glsl */ `#version 300 es
 precision highp float;
@@ -21,10 +14,10 @@ precision highp float;
 out vec4 fragColor;
 
 uniform vec2  u_res;
-uniform vec2  u_mouse;   // pixels, y up
+uniform vec2  u_mouse;
 uniform float u_time;
-uniform float u_theme;   // 1.0 dark, 0.0 light
-uniform float u_active;  // pointer proximity energy, 0..1
+uniform float u_theme;
+uniform float u_active;
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -56,8 +49,7 @@ float fbm(vec2 p) {
   return v;
 }
 
-// Cool, on-brand ramp: blue -> iris -> magenta -> teal, cyclic. Kept off the
-// green/amber wedge so the field reads spectral rather than thermal.
+// Cool, on-brand ramp: blue -> iris -> magenta -> teal, cyclic.
 vec3 palette(float t) {
   const vec3 blue = vec3(0.16, 0.42, 0.86);
   const vec3 iris = vec3(0.46, 0.32, 0.92);
@@ -81,7 +73,6 @@ void main() {
   float t = u_time * 0.045;
   vec2 p = uv * 1.55;
 
-  // Two-stage domain warp; the pointer bends the second stage.
   vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3 - t)));
   vec2 r = vec2(
     fbm(p + 1.9 * q + vec2(1.7, 9.2) + energy * 0.9),
@@ -93,7 +84,6 @@ void main() {
   vec3 col = palette(hue);
   col = mix(col, palette(hue + 0.22), clamp(length(r), 0.0, 1.0));
 
-  // Pointer bloom rides through the spectrum over time.
   col += palette(u_time * 0.08) * energy * 0.6;
 
   float density = smoothstep(0.15, 0.95, f + 0.25 * length(r));
@@ -102,228 +92,32 @@ void main() {
   vec3 lightBg = vec3(0.975, 0.975, 0.985);
   vec3 bg = mix(lightBg, darkBg, u_theme);
 
-  // Dark theme lets the field glow; light theme keeps it as a tinted wash.
   float ink = mix(0.32, 0.9, u_theme);
   col = mix(bg, col, density * ink + energy * 0.35);
 
   float vignette = smoothstep(1.7, 0.35, length(uv));
   col *= mix(0.9, 1.0, vignette);
 
-  // Dither breaks up banding on dark gradients.
   col += (hash(gl_FragCoord.xy + u_time) - 0.5) * 0.018;
 
   fragColor = vec4(col, 1.0);
 }
 `;
 
-function compile(gl: WebGL2RenderingContext, type: number, src: string) {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const log = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(`Shader compile failed: ${log}`);
-  }
-  return shader;
-}
-
 export function SpectraField({ className }: { className?: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { theme } = useTheme();
-  const themeRef = useRef(theme);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    themeRef.current = theme;
-  }, [theme]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const gl = canvas.getContext("webgl2", {
-      antialias: false,
-      alpha: false,
-      powerPreference: "high-performance",
-    });
-    if (!gl) {
-      setFailed(true);
-      return;
-    }
-
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    let program: WebGLProgram | null = null;
-    try {
-      const vs = compile(gl, gl.VERTEX_SHADER, VERT);
-      const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
-      program = gl.createProgram()!;
-      gl.attachShader(program, vs);
-      gl.attachShader(program, fs);
-      gl.linkProgram(program);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error(gl.getProgramInfoLog(program) ?? "link failed");
-      }
-    } catch (err) {
-      console.error(err);
-      setFailed(true);
-      return;
-    }
-
-    gl.useProgram(program);
-
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    // Full-screen triangle.
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 3, -1, -1, 3]),
-      gl.STATIC_DRAW,
-    );
-    const loc = gl.getAttribLocation(program, "a_pos");
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(program, "u_res");
-    const uMouse = gl.getUniformLocation(program, "u_mouse");
-    const uTime = gl.getUniformLocation(program, "u_time");
-    const uTheme = gl.getUniformLocation(program, "u_theme");
-    const uActive = gl.getUniformLocation(program, "u_active");
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let width = 0;
-    let height = 0;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      width = Math.max(1, Math.round(rect.width * dpr));
-      height = Math.max(1, Math.round(rect.height * dpr));
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-        gl.viewport(0, 0, width, height);
-      }
-    };
-    resize();
-
-    // Pointer state, smoothed toward its target each frame.
-    const mouse = { x: width / 2, y: height / 2 };
-    const target = { x: width / 2, y: height / 2 };
-    let active = 0;
-    let targetActive = 0.16;
-
-    const onPointer = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      target.x = (e.clientX - rect.left) * dpr;
-      target.y = (rect.height - (e.clientY - rect.top)) * dpr; // flip y
-      targetActive = 1;
-    };
-    const onLeave = () => {
-      targetActive = 0.16;
-    };
-
-    if (!reduceMotion) {
-      window.addEventListener("pointermove", onPointer, { passive: true });
-      window.addEventListener("pointerdown", onPointer, { passive: true });
-      document.addEventListener("pointerleave", onLeave);
-    }
-
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(canvas);
-
-    let raf = 0;
-    let running = true;
-    const start = performance.now();
-
-    const render = (now: number) => {
-      if (!running) return;
-      const time = (now - start) / 1000;
-
-      mouse.x += (target.x - mouse.x) * 0.06;
-      mouse.y += (target.y - mouse.y) * 0.06;
-      active += (targetActive - active) * 0.04;
-
-      gl.uniform2f(uRes, width, height);
-      gl.uniform2f(uMouse, mouse.x, mouse.y);
-      gl.uniform1f(uTime, time);
-      gl.uniform1f(uTheme, themeRef.current === "dark" ? 1 : 0);
-      gl.uniform1f(uActive, active);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-      if (!reduceMotion) raf = requestAnimationFrame(render);
-    };
-
-    // Pause when scrolled off-screen or the tab is hidden.
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        const visible = entry?.isIntersecting ?? true;
-        if (visible && !running && !reduceMotion) {
-          running = true;
-          raf = requestAnimationFrame(render);
-        } else if (!visible) {
-          running = false;
-          cancelAnimationFrame(raf);
-        }
-      },
-      { threshold: 0 },
-    );
-    io.observe(canvas);
-
-    const onVisibility = () => {
-      if (document.hidden) {
-        running = false;
-        cancelAnimationFrame(raf);
-      } else if (!reduceMotion) {
-        running = true;
-        raf = requestAnimationFrame(render);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    if (reduceMotion) {
-      // One static frame — no animation loop.
-      render(start);
-    } else {
-      raf = requestAnimationFrame(render);
-    }
-
-    return () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      io.disconnect();
-      resizeObserver.disconnect();
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pointermove", onPointer);
-      window.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("pointerleave", onLeave);
-      gl.deleteProgram(program);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
-    };
-  }, []);
-
-  if (failed) {
-    // Graceful fallback: a CSS spectral wash, no WebGL required.
-    return (
-      <div
-        aria-hidden="true"
-        className={cn(
-          "bg-[radial-gradient(120%_120%_at_20%_10%,var(--spectra-4),transparent_45%),radial-gradient(120%_120%_at_80%_30%,var(--spectra-5),transparent_45%),radial-gradient(140%_140%_at_50%_100%,var(--spectra-3),transparent_55%)] opacity-60",
-          className,
-        )}
-      />
-    );
-  }
-
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className={cn("h-full w-full", className)}
+    <ShaderCanvas
+      fragmentShader={FRAG}
+      className={className}
+      fallback={
+        <div
+          aria-hidden="true"
+          className={cn(
+            "h-full w-full bg-[radial-gradient(120%_120%_at_20%_10%,var(--spectra-4),transparent_45%),radial-gradient(120%_120%_at_80%_30%,var(--spectra-5),transparent_45%),radial-gradient(140%_140%_at_50%_100%,var(--spectra-3),transparent_55%)] opacity-60",
+            className,
+          )}
+        />
+      }
     />
   );
 }
