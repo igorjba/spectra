@@ -107,10 +107,9 @@ void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;
   vec2 off = u_mouse / u_res - 0.5;
 
-  // Camera follows the cursor: move right and the body turns to follow, move
-  // up and you look down onto it. Bounded and drift-free so the pointer is
-  // clearly in control.
-  float yaw = -off.x * 1.8;
+  // Camera orbits around the body with the cursor: move right and it swings
+  // around to the right. Bounded and drift-free so the pointer is in control.
+  float yaw = off.x * 1.8;
   // Keep the camera above the equator so the body always reads as a disc seen
   // from a flattering three-quarter angle, never edge-on.
   float pitch = clamp(off.y * 1.0 + 0.5, 0.22, 1.15);
